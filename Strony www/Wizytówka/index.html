@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wizytówka Online - Patryk Bieluń</title>
+    <!-- Ładowanie Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- POPRAWKA 1: <style src="..."> → <link rel="stylesheet"> -->
+    <link rel="stylesheet" href="style.css">
+    <!-- POPRAWKA 2: dodano defer, aby skrypt nie blokował parsowania DOM -->
+    <script src="tlumacz.js" defer></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3002829937059584"
+     crossorigin="anonymous"></script>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+<canvas id="pcb-canvas"></canvas>
+
+<script>
+(function() {
+    const canvas = document.getElementById('pcb-canvas');
+    const ctx = canvas.getContext('2d');
+
+    const BASE_COLOR  = { r: 0, g: 80,  b: 20  };  // ciemnozielony spoczynek
+    const GLOW_COLOR  = { r: 0, g: 255, b: 80  };  // jasny zielony przy kursorze
+    const GLOW_RADIUS = 80;                          // mniejszy promień rozświetlania
+    const FADE_SPEED  = 0.012;                       // jak szybko przygasa (niżej = wolniej)
+    const GRID = 40;
+    const NODE_RADIUS = 3;
+
+    let mouse = { x: -9999, y: -9999 };
+    let traces = [];
+    let nodes  = [];
+
+    function resize() {
+        canvas.width  = window.innerWidth;
+        canvas.height = window.innerHeight;
+        buildCircuit();
+    }
+
+    function buildCircuit() {
+        traces = [];
+        nodes  = [];
+        const cols = Math.ceil(canvas.width  / GRID) + 1;
+        const rows = Math.ceil(canvas.height / GRID) + 1;
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols - 1; c++) {
+                if (Math.random() < 0.45) {
+                    traces.push({
+                        x1: c * GRID, y1: r * GRID,
+                        x2: (c+1)*GRID, y2: r * GRID,
+                        glow: 0   // aktualny poziom rozświetlenia [0–1]
+                    });
+                }
+            }
+        }
+        for (let c = 0; c < cols; c++) {
+            for (let r = 0; r < rows - 1; r++) {
+                if (Math.random() < 0.45) {
+                    traces.push({
+                        x1: c * GRID, y1: r * GRID,
+                        x2: c * GRID, y2: (r+1)*GRID,
+                        glow: 0
+                    });
+                }
+            }
+        }
+
+        const nodeSet = new Set();
+        traces.forEach(t => {
+            nodeSet.add(`${t.x1},${t.y1}`);
+            nodeSet.add(`${t.x2},${t.y2}`);
+        });
+        nodeSet.forEach(key => {
+            const [x, y] = key.split(',').map(Number);
+            nodes.push({ x, y, glow: 0 });
+        });
+    }
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    function lerpColor(a, b, t) {
+        return {
+            r: Math.round(lerp(a.r, b.r, t)),
+            g: Math.round(lerp(a.g, b.g, t)),
+            b: Math.round(lerp(a.b, b.b, t))
+        };
+    }
+
+    function toRgb(c, alpha = 1) {
+        return `rgba(${c.r},${c.g},${c.b},${alpha})`;
+    }
+
+    // Natychmiastowy glow od kursora (do ustawiania targetu)
+    function cursorGlow(x, y) {
+        const dx = x - mouse.x;
+        const dy = y - mouse.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        return Math.max(0, 1 - dist / GLOW_RADIUS);
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // --- Ścieżki ---
+        traces.forEach(t => {
+            const mx = (t.x1 + t.x2) / 2;
+            const my = (t.y1 + t.y2) / 2;
+            const target = cursorGlow(mx, my);
+
+            // Natychmiast rozświetl, powoli przygasaj
+            if (target > t.glow) {
+                t.glow = target;
+            } else {
+                t.glow = Math.max(0, t.glow - FADE_SPEED);
+            }
+
+            const gf  = t.glow;
+            const col = lerpColor(BASE_COLOR, GLOW_COLOR, gf);
+            const alpha = 0.35 + gf * 0.65;
+            const lineW = 1 + gf * 2;
+
+            ctx.beginPath();
+            ctx.moveTo(t.x1, t.y1);
+            ctx.lineTo(t.x2, t.y2);
+            ctx.strokeStyle = toRgb(col, alpha);
+            ctx.lineWidth   = lineW;
+
+            if (gf > 0.05) {
+                ctx.shadowColor = toRgb(GLOW_COLOR, gf * 0.7);
+                ctx.shadowBlur  = 6 + gf * 12;
+            } else {
+                ctx.shadowBlur = 0;
+            }
+            ctx.stroke();
+        });
+
+        ctx.shadowBlur = 0;
+
+        // --- Węzły ---
+        nodes.forEach(n => {
+            const target = cursorGlow(n.x, n.y);
+
+            if (target > n.glow) {
+                n.glow = target;
+            } else {
+                n.glow = Math.max(0, n.glow - FADE_SPEED);
+            }
+
+            const gf  = n.glow;
+            const col = lerpColor(BASE_COLOR, GLOW_COLOR, gf);
+            const alpha = 0.4 + gf * 0.6;
+            const r = NODE_RADIUS + gf * 2.5;
+
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = toRgb(col, alpha);
+
+            if (gf > 0.05) {
+                ctx.shadowColor = toRgb(GLOW_COLOR, gf);
+                ctx.shadowBlur  = 8 + gf * 16;
+            }
+            ctx.fill();
+        });
+
+        ctx.shadowBlur = 0;
+        requestAnimationFrame(draw);
+    }
+
+    window.addEventListener('resize', resize);
+    window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+    window.addEventListener('mouseleave', () => { mouse.x = -9999; mouse.y = -9999; });
+
+    resize();
+    draw();
+})();
+</script>
+
+    <!-- Główny Kontener Wizytówki (widok przełączalny) -->
+    <div class="w-full max-w-lg shadow-2xl rounded-xl overflow-hidden transform transition-all duration-500 hover:shadow-3xl" style="background: rgba(255,255,255,0.08); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid rgba(255,255,255,0.15);">
+
+        <!-- Nagłówek wspólny dla obu stron -->
+        <header class="p-6 bg-gradient-to-r from-gray-800 to-gray-900 text-white relative">
+            <div class="flex justify-between items-start">
+                <!-- Przycisk Zmiany Języka -->
+                <button id="lang-toggle" onclick="toggleLanguage()" class="text-xs font-bold py-1 px-3 rounded-full bg-white bg-opacity-20 hover:bg-opacity-30 transition duration-150 mr-2">
+                    <span data-i18n="lang_button_text">English</span>
+                </button>
+                
+                <!-- Przycisk Zmiany Widoku (Nawigacja) -->
+                <button id="view-toggle" onclick="toggleView()" class="text-xs font-bold py-1 px-3 rounded-full bg-blue-600 hover:bg-blue-700 transition duration-150">
+                    <span id="view-toggle-text" data-i18n="nav_to_experience">Doświadczenie</span>
+                </button>
+            </div>
+            
+            <!-- Wizualny separator -->
+            <svg class="absolute bottom-0 left-0 w-full h-16" viewBox="0 0 1440 320" preserveAspectRatio="none">
+                <path fill="#ffffff" fill-opacity="1" d="M0,192L48,192C96,192,192,192,288,208C384,224,480,256,576,261.3C672,267,768,245,864,213.3C960,181,1056,139,1152,122.7C1248,107,1344,117,1392,122.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+            </svg>
+
+            <div class="flex flex-col items-center justify-center pt-4 pb-12 relative z-10">
+                <!-- Zdjęcie Profilowe -->
+                <div class="w-28 h-28 rounded-full border-4 border-white shadow-xl overflow-hidden mb-4">
+                    <img src="patryk.webp" alt="Zdjęcie profilowe" class="object-cover w-full h-full">
+                </div>
+
+                <!-- Imię i Nazwisko -->
+                <h1 class="text-3xl font-extrabold tracking-tight" data-i18n="name">Patryk Bieluń</h1>
+                
+                <!-- Stanowisko -->
+                <p class="text-gray-300 text-lg mt-1 font-medium" data-i18n="position">Administrator IT</p>
+            </div>
+        </header>
+
+        <!-- WIDOK 1: Wizytówka/Kontakt -->
+        <div id="card-view" class="main-view">
+            <main class="p-6 pt-0" style="background: transparent;">
+                
+                <!-- Krótki Opis / Bio -->
+                <section class="text-center mb-6">
+                    <h2 class="text-xl font-semibold text-white mb-2 border-b border-white border-opacity-20 pb-1" data-i18n="section_about">O mnie</h2>
+                    <p class="text-gray-300 leading-relaxed italic" data-i18n="bio">
+                        Mam ponad 5 lat doświadczenia jako administrator IT, pracując z Windows
+                        Server, VMware vSphere, Hyper-V oraz chmurami Azure i AWS. Automatyzuję
+                        zadania przy użyciu PowerShell i koncentruję się na optymalizacji systemów.
+                        Szukam wyzwań jako Administrator Systemów lub Inżynier DevOps
+                    </p>
+                </section>
+
+                <!-- Dane Kontaktowe -->
+                <section class="mb-8">
+                    <h2 class="text-xl font-semibold text-white mb-4 border-b border-white border-opacity-20 pb-1" data-i18n="section_contact">Kontakt</h2>
+                    <div class="space-y-3">
+                        
+                        <!-- E-mail -->
+                        <a href="mailto:patrykbielun@o2.pl" class="flex items-center p-3 rounded-lg transition duration-150" style="background: rgba(255,255,255,0.1);">
+                            <span class="w-6 h-6 mr-3 text-blue-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/>
+                                </svg>
+                            </span>
+                            <span class="text-gray-200 font-medium truncate" data-i18n="email_display">patrykbielun@o2.pl</span>
+                        </a>
+
+                        <!-- Telefon -->
+                        <a href="tel:+48661026820" class="flex items-center p-3 rounded-lg transition duration-150" style="background: rgba(255,255,255,0.1);">
+                            <span class="w-6 h-6 mr-3 text-green-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.18.44L14.477 15H11.25a7.48 7.48 0 0 1-5.32-2.193 7.48 7.48 0 0 1-2.193-5.32V6.75a2.25 2.25 0 0 0-2.25-2.25H2.25v2.25Z" />
+                                </svg>
+                            </span>
+                            <span class="text-gray-200 font-medium">+48 661 026 820</span>
+                        </a>
+                        
+                        <!-- Lokalizacja -->
+                        <div class="flex items-center p-3 rounded-lg" style="background: rgba(255,255,255,0.07);">
+                            <span class="w-6 h-6 mr-3 text-gray-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                                </svg>
+                            </span>
+                            <span class="text-gray-200 font-medium" data-i18n="location">Oława, Polska</span>
+                        </div>
+
+                    </div>
+                </section>
+                
+                <!-- Sekcja Social Media -->
+                <section>
+                    <h2 class="text-xl font-semibold text-white mb-4 border-b border-white border-opacity-20 pb-1" data-i18n="section_social">Media Społecznościowe</h2>
+                    <div class="grid grid-cols-2 gap-3">
+                        
+                        <!-- POPRAWKA 3: dodano rel="noopener noreferrer" dla bezpieczeństwa -->
+                        <a href="https://www.linkedin.com/in/patryk-bieluń-6186b6144" target="_blank" rel="noopener noreferrer" class="flex justify-center items-center py-3 px-4 bg-blue-700 text-white rounded-lg shadow-md hover:bg-blue-800 transition duration-150 font-semibold">
+                            <span class="text-xl mr-2">in</span> LinkedIn
+                        </a>
+                        
+                        <!-- POPRAWKA 3: dodano rel="noopener noreferrer" dla bezpieczeństwa -->
+                        <a href="https://github.com/PatrykB91" target="_blank" rel="noopener noreferrer" class="flex justify-center items-center py-3 px-4 bg-gray-800 text-white rounded-lg shadow-md hover:bg-gray-900 transition duration-150 font-semibold">
+                            <span class="text-xl mr-2">GH</span> GitHub
+                        </a>
+                        
+                        <!-- Własna Strona (np. Portfolio) 
+                        <a href="https://twoja-strona-www.pl" target="_blank" rel="noopener noreferrer" class="col-span-2 flex justify-center items-center py-3 px-4 bg-purple-600 text-white rounded-lg shadow-md hover:bg-purple-700 transition duration-150 font-semibold">
+                            <span class="w-6 h-6 mr-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21v-4.5m0-4.5H9.75m0 0 1.5-3.75M9.75 8.25h4.5m0 0 1.5-3.75M12 18V5.25c0-2.213-.659-4.303-1.724-6.149M12 18V5.25c0-2.213.659-4.303 1.724-6.149" />
+                                </svg>
+                            </span>
+                            <span data-i18n="portfolio">Moje Portfolio</span>
+                        </a> -->
+                    </div>
+                </section>
+                
+            </main>
+        </div>
+        
+        <!-- WIDOK 2: Doświadczenie Zawodowe (Domyślnie ukryty) -->
+        <div id="experience-view" class="main-view hidden">
+            <main class="p-6 pt-0" style="background: transparent;">
+                <section>
+                    <h2 class="text-2xl font-bold text-white mb-6 border-b border-white border-opacity-20 pb-2" data-i18n="section_experience_title">Doświadczenie Zawodowe</h2>
+
+                    <!-- STANOWISKO 1: Kyndryl Junior IT Administrator -->
+                    <div class="mb-8 p-4 rounded-lg border-l-4 border-blue-500" style="background: rgba(255,255,255,0.08);">
+                        <h3 class="text-xl font-semibold text-white" data-i18n="job_title_senior">Junior IT Administrator</h3>
+                        <p class="text-sm text-blue-300 mb-2" data-i18n="job_company_a">Kyndryl | 07.2022 - obecnie</p>
+                        <ul class="list-disc list-inside text-gray-300 space-y-1 ml-4">
+                            <li data-i18n="job_desc_a1">Tworzyłem, konfigurowałem i utrzymywałem maszyny wirtualne w środowisku VMware vSphere, z naciskiem na wydajność i dostępność</li>
+                            <li data-i18n="job_desc_a2">Zoptymalizowałem procesy monitorowania infrastruktury oraz aplikacji poprzez wdrożenie automatycznych alertów i skryptów diagnostycznych</li>
+                            <li data-i18n="job_desc_a3">Automatyzowałem powtarzalne zadania administracyjne z wykorzystaniem PowerShell — m.in. tworzenie i usuwanie kont użytkowników, cykliczny patching systemów</li>
+                            <li data-i18n="job_desc_a4">Wdrożyłem i administrowałem środowiskiem baz danych MS SQL — rozwiązałem problemy z wydajnością, co przełożyło się na skrócenie czasu odpowiedzi</li>
+                            <li data-i18n="job_desc_a5">Rozwiązywałem złożone incydenty w środowisku Windows Server (problemy z logowaniem, siecią, zależnościami usług)</li>
+                            <li data-i18n="job_desc_a6">Współpracowałem z globalnymi zespołami przy wdrażaniu poprawek, testach regresyjnych i zmianach w środowiskach produkcyjnych</li>
+                        </ul>
+                    </div>
+
+                    <!-- STANOWISKO 2: Kyndryl Asystent IT -->
+                    <div class="mb-8 p-4 rounded-lg border-l-4 border-gray-400" style="background: rgba(255,255,255,0.08);">
+                        <h3 class="text-xl font-semibold text-white" data-i18n="job_title_junior_kyndryl">Asystent IT</h3>
+                        <p class="text-sm text-blue-300 mb-2" data-i18n="job_company_kyndryl">Kyndryl | 09.2021 - 07.2022</p>
+                        <ul class="list-disc list-inside text-gray-300 space-y-1 ml-4">
+                            <li data-i18n="job_desc_b1">Wspierałem administrację środowiskami VMware vSphere oraz serwerami Windows Server, koncentrując się na ich dostępności i stabilności</li>
+                            <li data-i18n="job_desc_b2">Tworzyłem proste skrypty PowerShell w celu automatyzacji rutynowych zadań (np. sprawdzanie stanu usług, raportowanie przestrzeni dyskowej), co przyczyniło się do optymalizacji czasu reakcji zespołu</li>
+                            <li data-i18n="job_desc_b3">Diagnozowałem i rozwiązywałem pierwszą linię incydentów (logowanie użytkowników, błędy systemowe, problemy z DNS i siecią)</li>
+                            <li data-i18n="job_desc_b4">Udoskonaliłem dokumentację techniczną i procedury operacyjne, co usprawniło onboarding nowych członków zespołu</li>
+                            <li data-i18n="job_desc_b5">Współpracowałem z zespołami międzynarodowymi przy monitorowaniu aplikacji oraz wdrażaniu podstawowych zmian konfiguracyjnych</li>
+                        </ul>
+                    </div>
+
+                    <!-- STANOWISKO 3: IBM Asystent IT -->
+                    <div class="mb-8 p-4 rounded-lg border-l-4 border-gray-400" style="background: rgba(255,255,255,0.08);">
+                        <h3 class="text-xl font-semibold text-white" data-i18n="job_title_junior_ibm">Asystent IT</h3>
+                        <p class="text-sm text-blue-300 mb-2" data-i18n="job_company_ibm">IBM | 05.2019 - 09.2021</p>
+                        <ul class="list-disc list-inside text-gray-300 space-y-1 ml-4">
+                            <li data-i18n="job_desc_c1">Wdrażałem i konfigurowałem maszyny wirtualne w środowisku VMware vSphere oraz wspierałem administrację Windows Server</li>
+                            <li data-i18n="job_desc_c2">Wykonywałem monitoring infrastruktury IT i aplikacji, uczestnicząc w procesie wczesnego wykrywania i eskalacji incydentów</li>
+                            <li data-i18n="job_desc_c3">Diagnozowałem podstawowe błędy systemowe i aplikacyjne, ucząc się jednocześnie struktury środowisk korporacyjnych</li>
+                            <li data-i18n="job_desc_c4">Automatyzowałem proste zadania w PowerShell (np. czyszczenie logów, sprawdzanie usług), co pozwoliło skrócić czas realizacji zgłoszeń</li>
+                            <li data-i18n="job_desc_c5">Zdobywałem pierwsze doświadczenie w administracji środowiskami baz danych MS SQL – m.in. przez monitoring usług, restartowanie instancji i podstawową analizę błędów</li>
+                        </ul>
+                    </div>
+                    
+                    <h3 class="text-xl font-semibold text-white mt-8 mb-4 border-b border-white border-opacity-20 pb-1" data-i18n="section_skills">Główne Umiejętności Techniczne</h3>
+                    <div class="flex flex-wrap gap-2 text-sm">
+                        <span class="text-gray-200 px-3 py-1 rounded-full font-medium" style="background: rgba(255,255,255,0.15);">Windows Server</span>
+                        <span class="text-gray-200 px-3 py-1 rounded-full font-medium" style="background: rgba(255,255,255,0.15);">Linux (Ubuntu)</span>
+                        <span class="text-gray-200 px-3 py-1 rounded-full font-medium" style="background: rgba(255,255,255,0.15);">Cloud (Azure / AWS)</span>
+                        <span class="text-gray-200 px-3 py-1 rounded-full font-medium" style="background: rgba(255,255,255,0.15);">Virtualization (VMware / Hyper-V)</span>
+                        <span class="text-gray-200 px-3 py-1 rounded-full font-medium" style="background: rgba(255,255,255,0.15);">Active Directory</span>
+                        <span class="text-gray-200 px-3 py-1 rounded-full font-medium" style="background: rgba(255,255,255,0.15);">Scripting (PowerShell)</span>
+                        <span class="text-gray-200 px-3 py-1 rounded-full font-medium" style="background: rgba(255,255,255,0.15);">MS SQL Server</span>
+                        <span class="text-gray-200 px-3 py-1 rounded-full font-medium" style="background: rgba(255,255,255,0.15);">ITIL</span>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+    </div>
+
+</body>
+</html>
