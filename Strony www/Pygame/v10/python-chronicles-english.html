@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python Chronicles - Dark Code Grimoire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Cinzel','Georgia',serif;
+  background:#0a0a0a;
+  color:#d4c5aa;
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(139,69,19,0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(75,0,130,0.1) 0%, transparent 50%);
+}
+
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes flicker{0%,100%{opacity:1}50%{opacity:0.8}}
+@keyframes shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+@keyframes phaseChange{
+  0%{transform:scale(1) rotate(0deg);opacity:1}
+  50%{transform:scale(1.2) rotate(180deg);opacity:0.3}
+  100%{transform:scale(1) rotate(360deg);opacity:1}
+}
+
+.fl{animation:float 3s ease-in-out infinite}
+.phaseAnim{animation:phaseChange 0.8s ease-in-out}
+
+.ctr{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+}
+
+.box{
+  background:linear-gradient(145deg, rgba(40,30,20,0.95), rgba(20,15,10,0.95));
+  border:2px solid #5a4a3a;
+  border-radius:4px;
+  padding:20px;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.8),
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    inset 0 -1px 0 rgba(0,0,0,0.5);
+  position:relative;
+}
+
+.btn{
+  cursor:pointer;
+  border:2px solid #3a2a1a;
+  padding:12px 24px;
+  border-radius:3px;
+  font-weight:bold;
+  font-size:13px;
+  font-family:'Cinzel',serif;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  transition:all .3s;
+  position:relative;
+  box-shadow:0 4px 8px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,0.8)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+.bp{background:linear-gradient(145deg,#1e3a5f,#0f1e3f);color:#c9d6e8;border-color:#2a4a6f}
+.bs{background:linear-gradient(145deg,#1a4d2e,#0d2618);color:#b8e6c9;border-color:#2a5d3e}
+.bg{background:linear-gradient(145deg,#2a2a2a,#1a1a1a);color:#c0c0c0;border-color:#3a3a3a}
+.bw{background:linear-gradient(145deg,#8b4513,#5a2d0d);color:#ffd7a3;border-color:#6a3d1d}
+.tp{background:linear-gradient(145deg,#4a1a4a,#2a0a2a);color:#e6b8e6;border-color:#6a2a6a}
+
+.pbar{
+  height:12px;
+  background:linear-gradient(180deg, #1a0a0a, #0a0000);
+  border:1px solid #3a1a1a;
+  border-radius:2px;
+  overflow:hidden;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,0.8);
+}
+.pfill{
+  height:100%;
+  transition:width .4s;
+  position:relative;
+  box-shadow:0 0 8px rgba(255,0,0,0.5);
+}
+
+.code{
+  background:#0d0d0d;
+  color:#8fbc8f;
+  font-family:'Courier New',monospace;
+  width:100%;
+  min-height:120px;
+  padding:14px;
+  border:2px solid #3a2a1a;
+  border-radius:3px;
+  resize:vertical;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,0.8);
+}
+.code:focus{
+  outline:none;
+  border-color:#6a4a2a;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,0.8), 0 0 12px rgba(139,69,19,0.3);
+}
+
+.con{
+  background:#000;
+  color:#9acd32;
+  padding:14px;
+  border:2px solid #2a4a2a;
+  border-radius:3px;
+  min-height:80px;
+  font-size:13px;
+  max-height:120px;
+  overflow-y:auto;
+  font-family:'Courier New',monospace;
+  box-shadow:inset 0 0 20px rgba(0,100,0,0.3),0 0 10px rgba(0,255,0,0.2);
+  animation:flicker 3s infinite;
+}
+
+.grid{display:grid;gap:16px}
+@media(min-width:800px){.grid2{grid-template-columns:1fr 1fr}}
+
+.qi{
+  padding:12px;
+  margin:6px 0;
+  border-radius:3px;
+  background:linear-gradient(145deg, rgba(40,30,20,0.8), rgba(20,15,10,0.8));
+  border:1px solid #3a2a1a;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  transition:all .2s;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,0.6);
+}
+.qi:hover{transform:translateX(4px);border-color:#6a4a2a;box-shadow:0 4px 12px rgba(0,0,0,0.8)}
+.qi.dn{border-left:3px solid #2a5d3e;background:linear-gradient(145deg, rgba(20,40,30,0.8), rgba(10,20,15,0.8))}
+.qi.cu{border-left:3px solid #8b4513;background:linear-gradient(145deg, rgba(60,40,20,0.9), rgba(40,25,10,0.9));box-shadow:0 0 20px rgba(139,69,19,0.4)}
+.ql{max-height:320px;overflow-y:auto}
+
+.tg{color:#d4af37}
+.tp{color:#c084fc}
+.tb{color:#87ceeb}
+.ts{color:#90ee90}
+.tr{color:#dc143c}
+.tm{color:#a0a0a0}
+
+.phaseIndicator{
+  display:inline-block;
+  padding:4px 12px;
+  border-radius:12px;
+  font-size:11px;
+  font-weight:bold;
+  margin-left:8px;
+}
+.phase1{background:rgba(34,197,94,0.2);color:#22c55e;border:1px solid #22c55e}
+.phase2{background:rgba(251,191,36,0.2);color:#fbbf24;border:1px solid #fbbf24}
+.phase3{background:rgba(239,68,68,0.2);color:#ef4444;border:1px solid #ef4444}
+
+.loading{text-align:center;padding:24px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+let pyodideInstance = null;
+
+async function initPyodide() {
+  if (pyodideInstance) return pyodideInstance;
+  try {
+    pyodideInstance = await loadPyodide({
+      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
+    });
+    return pyodideInstance;
+  } catch (error) {
+    console.error("Error loading Pyodide:", error);
+    return null;
+  }
+}
+
+async function runPythonCode(code) {
+  if (!pyodideInstance) await initPyodide();
+  if (!pyodideInstance) return { success: false, output: "Pyodide initialization error" };
+
+  try {
+    pyodideInstance.runPython(`
+import sys
+from io import StringIO
+sys.stdout = StringIO()
+    `);
+
+    try {
+      pyodideInstance.runPython(code);
+    } catch (error) {
+      return { success: false, output: `Execution error: ${error.message}` };
+    }
+
+    const stdout = pyodideInstance.runPython("sys.stdout.getvalue()");
+    pyodideInstance.runPython(`sys.stdout = sys.__stdout__`);
+    return { success: true, output: stdout.trim() };
+  } catch (error) {
+    return { success: false, output: `Error: ${error.message}` };
+  }
+}
+
+// QUEST DATA - 3 CHAPTERS WITH 10 QUESTS EACH
+const QUESTS = {
+  novice: {
+    id: 'novice', 
+    name: 'Novice', 
+    icon: '⚔️', 
+    color: '#2a5d3e', 
+    reqLv: 1, 
+    nextLv: 8,
+    desc: 'Python Basics',
+    quests: [
+      {
+        id:'n1', en:'Typo Snake', em:'🐍', hp:90, xp:30, bs:0,
+        phases: [
+          {phase:1, tp:'print() - text', tk:'Print: "Attack"', ex:'Attack', ht:'print("Attack")', ls:'print("text")', th:'The print() function displays text on screen. Text must be in quotes " " or \' \'.'},
+          {phase:2, tp:'print() - numbers', tk:'Print: 42', ex:'42', ht:'print(42)', ls:'numbers without quotes', th:'Numbers don\'t need quotes in print(). Python automatically knows it\'s a number.'},
+          {phase:3, tp:'print() - multiple values', tk:'Print "Power:" and 100 (one line with space)', ex:'Power: 100', ht:'print("Power:", 100)', ls:'print(a, b) adds space', th:'print() can display multiple things at once separated by commas. It automatically adds a space between them. print("A", "B") gives "A B".'}
+        ]
+      },
+      {
+        id:'n2', en:'Word Echo', em:'💀', hp:100, xp:35, bs:0,
+        phases: [
+          {phase:1, tp:'Multiple print', tk:'Print "Python" 2 times (2 lines)', ex:'Python\nPython', ht:'print("Python")\nprint("Python")', ls:'repeat print()', th:'Each print() call creates a NEW LINE. Two print() calls = two lines of text.'},
+          {phase:2, tp:'print() with \\n', tk:'Print "A" and "B" on two lines (one print)', ex:'A\nB', ht:'print("A\\nB")', ls:'\\n = new line', th:'The \\n character (backslash + n) means new line INSIDE text. "A\\nB" prints A, then new line, then B.'},
+          {phase:3, tp:'print() with sep', tk:'Print "X", "Y", "Z" on separate lines (one print with sep)', ex:'X\nY\nZ', ht:'print("X", "Y", "Z", sep="\\n")', ls:'sep="\\n" changes separator', th:'The sep= parameter specifies what goes BETWEEN values. Default is space. sep="\\n" changes it to new line.'}
+        ]
+      },
+      {
+        id:'n3', en:'Variable Troll', em:'👹', hp:120, xp:40, bs:0,
+        phases: [
+          {phase:1, tp:'Number variable', tk:'power=50, print it', ex:'50', ht:'power = 50\nprint(power)', ls:'variable = value', th:'Variables are data containers. Create them with: name = value. The = sign means assignment (not equality!). Names can contain letters, digits, and _, but CAN\'T start with a digit.'},
+          {phase:2, tp:'Text variable', tk:'name="Mage", print it', ex:'Mage', ht:'name = "Mage"\nprint(name)', ls:'text in ""', th:'Strings (text) MUST be in quotes " " or \' \'. Without quotes Python thinks it\'s a variable name! "Mage" is a string, Mage is a variable.'},
+          {phase:3, tp:'Two variables', tk:'x=10, y=20, print both', ex:'10\n20', ht:'x = 10\ny = 20\nprint(x)\nprint(y)', ls:'each variable separate', th:'You can create multiple variables. Each is a separate container. Variables remember values until the end of the program or until overwritten.'}
+        ]
+      },
+      {
+        id:'n4', en:'Sum Golem', em:'⚒️', hp:130, xp:45, bs:0,
+        phases: [
+          {phase:1, tp:'Adding numbers', tk:'a=30, b=20, print a+b', ex:'50', ht:'a = 30\nb = 20\nprint(a + b)', ls:'+ adds', th:'The + operator adds numbers. Python automatically calculates the result.'},
+          {phase:2, tp:'Adding 3 numbers', tk:'x=10, y=20, z=30, print sum', ex:'60', ht:'x = 10\ny = 20\nz = 30\nprint(x + y + z)', ls:'can add many', th:'You can add any number of values.'},
+          {phase:3, tp:'Add and save', tk:'a=15, b=25, c=a+b, print c', ex:'40', ht:'a = 15\nb = 25\nc = a + b\nprint(c)', ls:'result in variable too', th:'You can save operation results in a new variable.'}
+        ]
+      },
+      {
+        id:'n5', en:'Subtraction Guardian', em:'⚔️', hp:140, xp:50, bs:0,
+        phases: [
+          {phase:1, tp:'Subtraction', tk:'hp=100, dmg=25, print hp-dmg', ex:'75', ht:'hp = 100\ndmg = 25\nprint(hp - dmg)', ls:'- subtracts', th:'The - operator subtracts numbers.'},
+          {phase:2, tp:'Multiple subtractions', tk:'x=100, print x-20-10', ex:'70', ht:'x = 100\nprint(x - 20 - 10)', ls:'sequential subtractions', th:'You can subtract multiple values in sequence.'},
+          {phase:3, tp:'Mix add and subtract', tk:'a=50, b=30, c=10, print a+b-c', ex:'70', ht:'a = 50\nb = 30\nc = 10\nprint(a + b - c)', ls:'combine + and -', th:'You can combine addition and subtraction in one expression.'}
+        ]
+      },
+      {
+        id:'n6', en:'Multiplier', em:'🗝️', hp:150, xp:55, bs:0,
+        phases: [
+          {phase:1, tp:'Basic multiplication', tk:'x=10, print x*3', ex:'30', ht:'x = 10\nprint(x * 3)', ls:'* multiplies', th:'The * operator multiplies numbers.'},
+          {phase:2, tp:'Multiply variables', tk:'a=5, b=6, print a*b', ex:'30', ht:'a = 5\nb = 6\nprint(a * b)', ls:'variable * variable', th:'You can multiply variables together.'},
+          {phase:3, tp:'Power', tk:'x=2, print x**3 (2 to power 3)', ex:'8', ht:'x = 2\nprint(x ** 3)', ls:'** is power', th:'The ** operator raises to a power. 2**3 = 2*2*2 = 8'}
+        ]
+      },
+      {
+        id:'n7', en:'Word Joiner', em:'🔗', hp:160, xp:60, bs:0,
+        phases: [
+          {phase:1, tp:'Concatenation', tk:'a="Py", b="thon", print a+b', ex:'Python', ht:'a = "Py"\nb = "thon"\nprint(a + b)', ls:'+ joins strings', th:'The + operator joins text (concatenation).'},
+          {phase:2, tp:'Join 3 strings', tk:'x="A", y="B", z="C", print x+y+z', ex:'ABC', ht:'x = "A"\ny = "B"\nz = "C"\nprint(x + y + z)', ls:'join many', th:'You can join any number of strings.'},
+          {phase:3, tp:'String with spaces', tk:'Join "Hello" and "World" with space', ex:'Hello World', ht:'a = "Hello"\nb = "World"\nprint(a + " " + b)', ls:'add " " for space', th:'To add a space, insert " " between strings.'}
+        ]
+      },
+      {
+        id:'n8', en:'Shadow of Logic', em:'🌑', hp:180, xp:70, bs:0,
+        phases: [
+          {phase:1, tp:'if condition', tk:'hp=100, if >50 print "Strong"', ex:'Strong', ht:'hp = 100\nif hp > 50:\n    print("Strong")', ls:'if condition:\n    code', th:'The if statement executes code ONLY when the condition is true. VERY IMPORTANT: code after if MUST be indented (4 spaces or Tab)! Without indentation Python will error.'},
+          {phase:2, tp:'if-else', tk:'mana=30, >=50:"Power", else:"WEAK"', ex:'WEAK', ht:'mana = 30\nif mana >= 50:\n    print("Power")\nelse:\n    print("WEAK")', ls:'else for false', th:'Else executes when the if condition is FALSE. It\'s the backup plan - if didn\'t work, so execute else. Both blocks must be indented!'},
+          {phase:3, tp:'Operator ==', tk:'code=1234, if ==1234 print "OK"', ex:'OK', ht:'code = 1234\nif code == 1234:\n    print("OK")', ls:'== is comparison', th:'WARNING: == (two signs!) checks equality - it\'s a question! One = is value assignment. if x == 5 asks "is x equal to 5?", x = 5 sets x to 5.'}
+        ]
+      },
+      {
+        id:'n9', en:'Condition Demon', em:'😈', hp:200, xp:80, bs:0,
+        phases: [
+          {phase:1, tp:'Operator >=', tk:'x=50, if >=50 print "Max"', ex:'Max', ht:'x = 50\nif x >= 50:\n    print("Max")', ls:'>= greater or equal', th:'>= checks if value is greater OR equal.'},
+          {phase:2, tp:'Operator !=', tk:'status="active", if !="dead" print "Alive"', ex:'Alive', ht:'status = "active"\nif status != "dead":\n    print("Alive")', ls:'!= is inequality', th:'!= checks if values are DIFFERENT.'},
+          {phase:3, tp:'elif', tk:'lv=7, >10:"A", >5:"B", else:"C"', ex:'B', ht:'lv = 7\nif lv > 10:\n    print("A")\nelif lv > 5:\n    print("B")\nelse:\n    print("C")', ls:'elif = else if', th:'elif allows checking multiple conditions when previous ones are false.'}
+        ]
+      },
+      {
+        id:'n10', en:'BOSS: Arcanus', em:'☠️', hp:250, xp:120, bs:1,
+        phases: [
+          {phase:1, tp:'Basic combo', tk:'x=10, y=5, print x+y', ex:'15', ht:'x = 10\ny = 5\nprint(x + y)', ls:'variables + addition', th:'Combine basics: variables and math operations.'},
+          {phase:2, tp:'Condition with math', tk:'a=20, b=10, if a>b print a-b', ex:'10', ht:'a = 20\nb = 10\nif a > b:\n    print(a - b)', ls:'if + math', th:'You can use math expressions in if statements.'},
+          {phase:3, tp:'FINALE', tk:'x=15, y=10, if x>y print x+y, else x-y', ex:'25', ht:'x = 15\ny = 10\nif x > y:\n    print(x + y)\nelse:\n    print(x - y)', ls:'EVERYTHING TOGETHER!', th:'FINALE! Variables, math, logic - the foundation of programming!'}
+        ]
+      }
+    ]
+  },
+  mage: {
+    id: 'mage', 
+    name: 'Mage', 
+    icon: '🔥', 
+    color: '#1e3a5f', 
+    reqLv: 8, 
+    nextLv: 15,
+    desc: 'Loops and data structures',
+    quests: [
+      {
+        id:'m1', en:'Loop Golem', em:'🔄', hp:200, xp:90, bs:0,
+        phases: [
+          {phase:1, tp:'range() loop', tk:'for i in range(3): print "X"', ex:'X\nX\nX', ht:'for i in range(3):\n    print("X")', ls:'range(n) = n repetitions', th:'The for loop repeats code a specified number of times. range(3) is the sequence 0,1,2 - three numbers, so code executes 3 times. Code in loop MUST be indented!'},
+          {phase:2, tp:'Using variable i', tk:'for i in range(3): print i', ex:'0\n1\n2', ht:'for i in range(3):\n    print(i)', ls:'i takes successive values', th:'Variable i (you can name it anything) takes successive values from range(). range(3) gives 0,1,2 (starts at 0!). You can use this variable in calculations.'},
+          {phase:3, tp:'range(start, stop)', tk:'for i in range(5,8): print i', ex:'5\n6\n7', ht:'for i in range(5, 8):\n    print(i)', ls:'range(start, stop)', th:'range(5,8) generates 5,6,7 - starts at 5 and ends BEFORE 8 (stop is excluded!). Useful when you don\'t want to start from zero.'}
+        ]
+      },
+      {
+        id:'m2', en:'Magic Counter', em:'🕯️', hp:220, xp:100, bs:0,
+        phases: [
+          {phase:1, tp:'Loop with calculations', tk:'for i in range(3): print i*2', ex:'0\n2\n4', ht:'for i in range(3):\n    print(i * 2)', ls:'use i in calculations', th:'Loop variable can be used in math expressions.'},
+          {phase:2, tp:'Sum in loop', tk:'s=0, loop range(4), s=s+i, print s after loop', ex:'6', ht:'s = 0\nfor i in range(4):\n    s = s + i\nprint(s)', ls:'accumulate values', th:'0+0+1+2+3=6. Loop can accumulate values in a variable.'},
+          {phase:3, tp:'range(start,stop,step)', tk:'for i in range(0,10,2): print i', ex:'0\n2\n4\n6\n8', ht:'for i in range(0, 10, 2):\n    print(i)', ls:'step=increment', th:'range(0,10,2) every second: 0,2,4,6,8. Third parameter is the step.'}
+        ]
+      },
+      {
+        id:'m3', en:'List Hydra', em:'🐉', hp:240, xp:110, bs:0,
+        phases: [
+          {phase:1, tp:'Basic list', tk:'a=["X","Y","Z"], print a[1]', ex:'Y', ht:'a = ["X", "Y", "Z"]\nprint(a[1])', ls:'list[index], from 0', th:'A list is an ordered collection in brackets []. IMPORTANT: Python counts from 0! a[0]="X" (first!), a[1]="Y" (second!), a[2]="Z" (third!). Common beginner mistake.'},
+          {phase:2, tp:'Negative index', tk:'b=["A","B","C"], print b[-1]', ex:'C', ht:'b = ["A", "B", "C"]\nprint(b[-1])', ls:'-1 = last', th:'Negative indices count from the end! -1 is last element, -2 is second-to-last, -3 is third from end. Super convenient when you don\'t know list length.'},
+          {phase:3, tp:'List of numbers', tk:'nums=[10,20,30], print nums[0]+nums[2]', ex:'40', ht:'nums = [10, 20, 30]\nprint(nums[0] + nums[2])', ls:'operations on elements', th:'List elements can be used in calculations! nums[0]=10, nums[2]=30, so 10+30=40. Lists can contain numbers, strings, other lists - whatever you want!'}
+        ]
+      },
+      {
+        id:'m4', en:'Index Guardian', em:'🗿', hp:260, xp:120, bs:0,
+        phases: [
+          {phase:1, tp:'Modify element', tk:'a=[1,2,3], change a[1] to 99, print a[1]', ex:'99', ht:'a = [1, 2, 3]\na[1] = 99\nprint(a[1])', ls:'list[i] = new_value', th:'List elements can be changed through assignment.'},
+          {phase:2, tp:'append()', tk:'lst=[], add append(5), print lst[0]', ex:'5', ht:'lst = []\nlst.append(5)\nprint(lst[0])', ls:'append adds to end', th:'The append() method adds an element to the end of the list.'},
+          {phase:3, tp:'len()', tk:'x=[1,2,3,4], print len(x)', ex:'4', ht:'x = [1, 2, 3, 4]\nprint(len(x))', ls:'len() = length', th:'The len() function returns the number of elements in a list.'}
+        ]
+      },
+      {
+        id:'m5', en:'Loop Enchanter', em:'🎯', hp:280, xp:130, bs:0,
+        phases: [
+          {phase:1, tp:'for in list', tk:'for x in [1,2,3]: print x', ex:'1\n2\n3', ht:'for x in [1, 2, 3]:\n    print(x)', ls:'iterate over elements', th:'for x in list iterates directly over elements.'},
+          {phase:2, tp:'for in string', tk:'for c in "ABC": print c', ex:'A\nB\nC', ht:'for c in "ABC":\n    print(c)', ls:'strings are iterable too', th:'Strings can also be iterated - each letter separately.'},
+          {phase:3, tp:'List of strings', tk:'for s in ["Cat","Dog"]: print s', ex:'Cat\nDog', ht:'for s in ["Cat", "Dog"]:\n    print(s)', ls:'list can have strings', th:'Lists can contain different types, like strings.'}
+        ]
+      },
+      {
+        id:'m6', en:'While Master', em:'⚡', hp:300, xp:140, bs:0,
+        phases: [
+          {phase:1, tp:'basic while', tk:'x=0, while x<3: print x, x+=1', ex:'0\n1\n2', ht:'x = 0\nwhile x < 3:\n    print(x)\n    x += 1', ls:'while condition:', th:'while executes code as long as condition is true.'},
+          {phase:2, tp:'Countdown', tk:'n=3, while n>0: print n, n-=1', ex:'3\n2\n1', ht:'n = 3\nwhile n > 0:\n    print(n)\n    n -= 1', ls:'while can count down', th:'while is great for counting down.'},
+          {phase:3, tp:'break', tk:'i=0, while True: print i, i+=1, if i==2: break', ex:'0\n1', ht:'i = 0\nwhile True:\n    print(i)\n    i += 1\n    if i == 2:\n        break', ls:'break ends loop', th:'break immediately exits the loop.'}
+        ]
+      },
+      {
+        id:'m7', en:'Dictionary of Secrets', em:'📖', hp:320, xp:150, bs:0,
+        phases: [
+          {phase:1, tp:'Basic dict', tk:'d={"a":1,"b":2}, print d["a"]', ex:'1', ht:'d = {"a": 1, "b": 2}\nprint(d["a"])', ls:'dict[key]', th:'Dictionaries store key:value pairs. Access via key: dict[key].'},
+          {phase:2, tp:'Add to dict', tk:'d={}, d["x"]=10, print d["x"]', ex:'10', ht:'d = {}\nd["x"] = 10\nprint(d["x"])', ls:'dict[key] = value', th:'Add new key:value pairs through assignment.'},
+          {phase:3, tp:'Dict values', tk:'d={"name":"Mage","power":100}, print d["power"]', ex:'100', ht:'d = {"name": "Mage", "power": 100}\nprint(d["power"])', ls:'key can be string', th:'Dictionary keys can be different types - strings, numbers, etc.'}
+        ]
+      },
+      {
+        id:'m8', en:'Function Architect', em:'🏗️', hp:340, xp:160, bs:0,
+        phases: [
+          {phase:1, tp:'def function', tk:'def f(): print("Hi")\ncall f()', ex:'Hi', ht:'def f():\n    print("Hi")\nf()', ls:'def name():', th:'def defines a function. Call it with name().'},
+          {phase:2, tp:'Parameter', tk:'def say(x): print(x)\nsay("OK")', ex:'OK', ht:'def say(x):\n    print(x)\nsay("OK")', ls:'parameters in ()', th:'Functions can accept parameters.'},
+          {phase:3, tp:'return', tk:'def add(a,b): return a+b\nprint add(3,4)', ex:'7', ht:'def add(a, b):\n    return a + b\nprint(add(3, 4))', ls:'return returns value', th:'return returns a result from the function.'}
+        ]
+      },
+      {
+        id:'m9', en:'Comprehension Master', em:'✨', hp:360, xp:170, bs:0,
+        phases: [
+          {phase:1, tp:'List comprehension', tk:'a=[x*2 for x in range(3)], print a', ex:'[0, 2, 4]', ht:'a = [x * 2 for x in range(3)]\nprint(a)', ls:'[expression for x in ...]', th:'List comprehension creates a list in one line.'},
+          {phase:2, tp:'Comprehension with if', tk:'a=[x for x in range(5) if x>2], print a', ex:'[3, 4]', ht:'a = [x for x in range(5) if x > 2]\nprint(a)', ls:'add if at end', th:'You can filter elements by adding if.'},
+          {phase:3, tp:'Dict comprehension', tk:'d={x:x**2 for x in range(3)}, print d', ex:'{0: 0, 1: 1, 2: 4}', ht:'d = {x: x**2 for x in range(3)}\nprint(d)', ls:'{k:v for x in ...}', th:'Dict comprehension creates a dictionary analogously.'}
+        ]
+      },
+      {
+        id:'m10', en:'BOSS: Code Lord', em:'☠️', hp:450, xp:250, bs:1,
+        phases: [
+          {phase:1, tp:'Function with list', tk:'def sum_list(lst): return sum(lst)\nprint sum_list([1,2,3])', ex:'6', ht:'def sum_list(lst):\n    return sum(lst)\nprint(sum_list([1, 2, 3]))', ls:'sum() function', th:'The sum() function sums list elements.'},
+          {phase:2, tp:'Loop in function', tk:'def count_to(n):\n  for i in range(n):\n    print(i)\ncount_to(3)', ex:'0\n1\n2', ht:'def count_to(n):\n    for i in range(n):\n        print(i)\ncount_to(3)', ls:'function + loop', th:'Functions can contain loops.'},
+          {phase:3, tp:'MAGE FINALE', tk:'def proc(lst): return [x*2 for x in lst if x>1]\nprint proc([1,2,3])', ex:'[4, 6]', ht:'def proc(lst):\n    return [x * 2 for x in lst if x > 1]\nprint(proc([1, 2, 3]))', ls:'EVERYTHING!', th:'FINALE! Function + comprehension + filtering. You are a Mage!'}
+        ]
+      }
+    ]
+  },
+  archmage: {
+    id: 'archmage', 
+    name: 'Archmage', 
+    icon: '👑', 
+    color: '#4a1a4a', 
+    reqLv: 15, 
+    nextLv: 999,
+    desc: 'Advanced techniques',
+    quests: [
+      {
+        id:'a1', en:'Exception Hunter', em:'🎯', hp:350, xp:180, bs:0,
+        phases: [
+          {phase:1, tp:'try-except basic', tk:'try: print(1/1)\nexcept: print("Error")', ex:'1.0', ht:'try:\n    print(1 / 1)\nexcept:\n    print("Error")', ls:'try: code\nexcept: handle', th:'try-except catches errors in code.'},
+          {phase:2, tp:'Catch error', tk:'try: print(1/0)\nexcept: print("Error")', ex:'Error', ht:'try:\n    print(1 / 0)\nexcept:\n    print("Error")', ls:'division by 0 = error', th:'Division by 0 raises error, except catches it.'},
+          {phase:3, tp:'Specific exception', tk:'try: int("x")\nexcept ValueError: print("BAD")', ex:'BAD', ht:'try:\n    int("x")\nexcept ValueError:\n    print("BAD")', ls:'except ErrorName:', th:'You can catch specific error types like ValueError.'}
+        ]
+      },
+      {
+        id:'a2', en:'Lambda Master', em:'λ', hp:380, xp:200, bs:0,
+        phases: [
+          {phase:1, tp:'Basic lambda', tk:'f=lambda x:x*2, print f(5)', ex:'10', ht:'f = lambda x: x * 2\nprint(f(5))', ls:'lambda param: expression', th:'Lambda is a short anonymous function.'},
+          {phase:2, tp:'Lambda with 2 params', tk:'add=lambda a,b:a+b, print add(3,7)', ex:'10', ht:'add = lambda a, b: a + b\nprint(add(3, 7))', ls:'lambda a,b: ...', th:'Lambda can have multiple parameters.'},
+          {phase:3, tp:'map()', tk:'a=list(map(lambda x:x**2,[1,2,3])), print a', ex:'[1, 4, 9]', ht:'a = list(map(lambda x: x**2, [1, 2, 3]))\nprint(a)', ls:'map(function, list)', th:'map() applies function to each list element.'}
+        ]
+      },
+      {
+        id:'a3', en:'Decorator Guardian', em:'🎭', hp:400, xp:220, bs:0,
+        phases: [
+          {phase:1, tp:'Basic decorator', tk:'def deco(f):\n  def wrap():\n    return f()+"!"\n  return wrap\n@deco\ndef hi():\n  return "Hi"\nprint(hi())', ex:'Hi!', ht:'def deco(f):\n    def wrap():\n        return f() + "!"\n    return wrap\n@deco\ndef hi():\n    return "Hi"\nprint(hi())', ls:'@decorator\ndef f():', th:'Decorator modifies function behavior.'},
+          {phase:2, tp:'Decorator with print', tk:'def log(f):\n  def wrap():\n    print("START")\n    f()\n  return wrap\n@log\ndef go():\n  print("GO")\ngo()', ex:'START\nGO', ht:'def log(f):\n    def wrap():\n        print("START")\n        f()\n    return wrap\n@log\ndef go():\n    print("GO")\ngo()', ls:'decorator can add code', th:'Decorator can execute additional code before/after function.'},
+          {phase:3, tp:'Multiplying decorator', tk:'def x2(f):\n  def w():\n    f()\n    f()\n  return w\n@x2\ndef say():\n  print("A")\nsay()', ex:'A\nA', ht:'def x2(f):\n    def w():\n        f()\n        f()\n    return w\n@x2\ndef say():\n    print("A")\nsay()', ls:'decorator can call multiple times', th:'Decorator can change number of calls.'}
+        ]
+      },
+      {
+        id:'a4', en:'Power Generator', em:'⚙️', hp:420, xp:240, bs:0,
+        phases: [
+          {phase:1, tp:'basic yield', tk:'def gen():\n  yield 1\n  yield 2\nfor x in gen():\n  print(x)', ex:'1\n2', ht:'def gen():\n    yield 1\n    yield 2\nfor x in gen():\n    print(x)', ls:'yield returns value', th:'yield creates a generator - function returning successive values.'},
+          {phase:2, tp:'Generator range', tk:'def r(n):\n  i=0\n  while i<n:\n    yield i\n    i+=1\nfor x in r(3):\n  print(x)', ex:'0\n1\n2', ht:'def r(n):\n    i = 0\n    while i < n:\n        yield i\n        i += 1\nfor x in r(3):\n    print(x)', ls:'generator in loop', th:'Generators are memory-efficient - generate values on demand.'},
+          {phase:3, tp:'Generator expression', tk:'g=(x**2 for x in range(3))\nfor v in g:\n  print(v)', ex:'0\n1\n4', ht:'g = (x**2 for x in range(3))\nfor v in g:\n    print(v)', ls:'() instead of []', th:'() creates generator expression - like list comprehension but lazier.'}
+        ]
+      },
+      {
+        id:'a5', en:'Class Warrior', em:'⚔️', hp:440, xp:260, bs:0,
+        phases: [
+          {phase:1, tp:'Class __init__', tk:'class X:\n  def __init__(self,v):\n    self.v=v\nx=X(5)\nprint(x.v)', ex:'5', ht:'class X:\n    def __init__(self, v):\n        self.v = v\nx = X(5)\nprint(x.v)', ls:'constructor', th:'__init__ is the constructor - initializes object.'},
+          {phase:2, tp:'Class method', tk:'class C:\n  def say(self):\n    return "Hi"\nc=C()\nprint(c.say())', ex:'Hi', ht:'class C:\n    def say(self):\n        return "Hi"\nc = C()\nprint(c.say())', ls:'methods have self', th:'Methods are functions in a class. self refers to the object.'},
+          {phase:3, tp:'Attribute + method', tk:'class P:\n  def __init__(self,n):\n    self.n=n\n  def show(self):\n    return self.n\np=P("A")\nprint(p.show())', ex:'A', ht:'class P:\n    def __init__(self, n):\n        self.n = n\n    def show(self):\n        return self.n\np = P("A")\nprint(p.show())', ls:'self.attribute', th:'Attributes store object state, methods operate on it.'}
+        ]
+      },
+      {
+        id:'a6', en:'Inheritance Mage', em:'🧬', hp:460, xp:280, bs:0,
+        phases: [
+          {phase:1, tp:'Basic inheritance', tk:'class A:\n  def f(self):\n    return 1\nclass B(A):\n  pass\nb=B()\nprint(b.f())', ex:'1', ht:'class A:\n    def f(self):\n        return 1\nclass B(A):\n    pass\nb = B()\nprint(b.f())', ls:'class B(A):', th:'B inherits from A - has access to A\'s methods.'},
+          {phase:2, tp:'Override method', tk:'class A:\n  def f(self):\n    return 1\nclass B(A):\n  def f(self):\n    return 2\nb=B()\nprint(b.f())', ex:'2', ht:'class A:\n    def f(self):\n        return 1\nclass B(A):\n    def f(self):\n        return 2\nb = B()\nprint(b.f())', ls:'override method', th:'Child class can override parent\'s method.'},
+          {phase:3, tp:'super()', tk:'class A:\n  def __init__(self,x):\n    self.x=x\nclass B(A):\n  def __init__(self,x):\n    super().__init__(x)\nb=B(5)\nprint(b.x)', ex:'5', ht:'class A:\n    def __init__(self, x):\n        self.x = x\nclass B(A):\n    def __init__(self, x):\n        super().__init__(x)\nb = B(5)\nprint(b.x)', ls:'super() calls parent', th:'super() allows calling parent class method.'}
+        ]
+      },
+      {
+        id:'a7', en:'Property Owner', em:'🔑', hp:480, xp:300, bs:0,
+        phases: [
+          {phase:1, tp:'@property getter', tk:'class C:\n  @property\n  def x(self):\n    return 10\nc=C()\nprint(c.x)', ex:'10', ht:'class C:\n    @property\n    def x(self):\n        return 10\nc = C()\nprint(c.x)', ls:'@property', th:'@property converts method to attribute (no ()).'},
+          {phase:2, tp:'Property with attribute', tk:'class C:\n  def __init__(self):\n    self._v=5\n  @property\n  def v(self):\n    return self._v\nc=C()\nprint(c.v)', ex:'5', ht:'class C:\n    def __init__(self):\n        self._v = 5\n    @property\n    def v(self):\n        return self._v\nc = C()\nprint(c.v)', ls:'encapsulation', th:'Property can return value of private attribute.'},
+          {phase:3, tp:'setter', tk:'class C:\n  def __init__(self):\n    self._x=0\n  @property\n  def x(self):\n    return self._x\n  @x.setter\n  def x(self,v):\n    self._x=v\nc=C()\nc.x=7\nprint(c.x)', ex:'7', ht:'class C:\n    def __init__(self):\n        self._x = 0\n    @property\n    def x(self):\n        return self._x\n    @x.setter\n    def x(self, v):\n        self._x = v\nc = C()\nc.x = 7\nprint(c.x)', ls:'@name.setter', th:'setter allows assigning values like to an attribute.'}
+        ]
+      },
+      {
+        id:'a8', en:'*args Wizard', em:'✨', hp:500, xp:320, bs:0,
+        phases: [
+          {phase:1, tp:'*args', tk:'def f(*args):\n  print(args)\nf(1,2,3)', ex:'(1, 2, 3)', ht:'def f(*args):\n    print(args)\nf(1, 2, 3)', ls:'*args = any number of args', th:'*args collects all positional arguments into a tuple.'},
+          {phase:2, tp:'Iterate over *args', tk:'def sum_all(*args):\n  s=0\n  for x in args:\n    s+=x\n  return s\nprint(sum_all(1,2,3))', ex:'6', ht:'def sum_all(*args):\n    s = 0\n    for x in args:\n        s += x\n    return s\nprint(sum_all(1, 2, 3))', ls:'iterate over args', th:'args is a tuple - you can iterate over it.'},
+          {phase:3, tp:'**kwargs', tk:'def f(**kw):\n  print(kw)\nf(a=1,b=2)', ex:"{'a': 1, 'b': 2}", ht:'def f(**kw):\n    print(kw)\nf(a=1, b=2)', ls:'**kwargs = named args', th:'**kwargs collects named arguments into a dictionary.'}
+        ]
+      },
+      {
+        id:'a9', en:'Context Manager Master', em:'🚪', hp:520, xp:340, bs:0,
+        phases: [
+          {phase:1, tp:'with statement', tk:'class C:\n  def __enter__(self):\n    return "IN"\n  def __exit__(self,*a):\n    pass\nwith C() as x:\n  print(x)', ex:'IN', ht:'class C:\n    def __enter__(self):\n        return "IN"\n    def __exit__(self, *a):\n        pass\nwith C() as x:\n    print(x)', ls:'__enter__ and __exit__', th:'with uses __enter__ and __exit__ for resource management.'},
+          {phase:2, tp:'Context with code', tk:'class C:\n  def __enter__(self):\n    print("START")\n  def __exit__(self,*a):\n    print("END")\nwith C():\n  print("MID")', ex:'START\nMID\nEND', ht:'class C:\n    def __enter__(self):\n        print("START")\n    def __exit__(self, *a):\n        print("END")\nwith C():\n    print("MID")', ls:'automatic cleanup', th:'__exit__ always executes - ideal for closing files/connections.'},
+          {phase:3, tp:'Context with return', tk:'class C:\n  def __enter__(self):\n    return 42\n  def __exit__(self,*a):\n    pass\nwith C() as v:\n  print(v*2)', ex:'84', ht:'class C:\n    def __enter__(self):\n        return 42\n    def __exit__(self, *a):\n        pass\nwith C() as v:\n    print(v * 2)', ls:'__enter__ returns value', th:'__enter__ can return a value that will be available after as.'}
+        ]
+      },
+      {
+        id:'a10', en:'BOSS: Ultimate Archmage', em:'☠️', hp:700, xp:500, bs:1,
+        phases: [
+          {phase:1, tp:'Class with decorator', tk:'def log(f):\n  def w(self):\n    print("LOG")\n    return f(self)\n  return w\nclass C:\n  @log\n  def go(self):\n    return "OK"\nc=C()\nprint(c.go())', ex:'LOG\nOK', ht:'def log(f):\n    def w(self):\n        print("LOG")\n        return f(self)\n    return w\nclass C:\n    @log\n    def go(self):\n        return "OK"\nc = C()\nprint(c.go())', ls:'decorator in class', th:'Decorators work with class methods too!'},
+          {phase:2, tp:'Generator + comprehension', tk:'def g():\n  for i in range(3):\n    yield i*2\na=[x+1 for x in g()]\nprint(a)', ex:'[1, 3, 5]', ht:'def g():\n    for i in range(3):\n        yield i * 2\na = [x + 1 for x in g()]\nprint(a)', ls:'generator + comp', th:'Generator can be used in comprehension!'},
+          {phase:3, tp:'EVERYTHING TOGETHER', tk:'class M:\n  def __init__(self,v):\n    self.v=v\n  @property\n  def val(self):\n    return self.v*2\nm=M(5)\nprint(m.val)', ex:'10', ht:'class M:\n    def __init__(self, v):\n        self.v = v\n    @property\n    def val(self):\n        return self.v * 2\nm = M(5)\nprint(m.val)', ls:'ARCHMAGE FINALE!', th:'ARCHMAGE! Class + constructor + property. You\'ve mastered Python!'}
+        ]
+      }
+    ]
+  }
+};
+
+// LOADING SCREEN
+const LoadingScreen = () => (
+  <div className="ctr">
+    <div className="box" style={{maxWidth:400,textAlign:'center'}}>
+      <div className="fl" style={{fontSize:64,marginBottom:16}}>🐍</div>
+      <h2 className="tp" style={{fontSize:22,marginBottom:8}}>Loading Pyodide...</h2>
+      <p className="tm" style={{fontSize:14}}>Python interpreter starting in browser...</p>
+      <div className="pbar" style={{marginTop:16}}>
+        <div className="pfill" style={{width:'100%',background:'linear-gradient(90deg,#3b82f6,#8b5cf6)'}}></div>
+      </div>
+    </div>
+  </div>
+);
+
+// HEADER
+const Header = ({ player, onUsePot }) => {
+  const handleUsePot = () => {
+    if (player.pt > 0 && player.hp < player.mhp) onUsePot();
+  };
+
+  return (
+    <div style={{background:'linear-gradient(135deg,#1e293b,#334155)',padding:'12px 16px',borderBottom:'2px solid rgba(148,163,184,.3)',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
+      <div style={{display:'flex',alignItems:'center',gap:12}}>
+        <div style={{fontSize:28}}>🧙‍♂️</div>
+        <div>
+          <div className="tg" style={{fontSize:15,fontWeight:'bold'}}>{player.rk}</div>
+          <div className="tm" style={{fontSize:12}}>Level {player.lv}</div>
+        </div>
+      </div>
+      <div style={{display:'flex',gap:12,alignItems:'center'}}>
+        <div style={{minWidth:140}}>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:2}}>
+            <span className="tr" style={{fontSize:12}}>❤️ {player.hp}/{player.mhp}</span>
+            <span className="tb" style={{fontSize:12}}>⭐ {player.xp} XP</span>
+          </div>
+          <div className="pbar">
+            <div className="pfill" style={{width:`${(player.hp/player.mhp)*100}%`,background:'linear-gradient(90deg,#ef4444,#dc2626)'}}></div>
+          </div>
+        </div>
+        <button className="btn bw" onClick={handleUsePot} disabled={player.pt===0 || player.hp===player.mhp} style={{fontSize:12,padding:'6px 12px'}}>
+          🧪 {player.pt}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// CHAPTER SELECT
+const ChapterSelect = ({ player, onSelectChapter, onRestart }) => {
+  const chapters = Object.values(QUESTS);
+  
+  return (
+    <div className="ctr" style={{background:'linear-gradient(135deg,#0f172a,#1e293b)',minHeight:'calc(100vh - 60px)'}}>
+      <div className="box" style={{maxWidth:500}}>
+        <div style={{textAlign:'center',marginBottom:20}}>
+          <h1 className="tg" style={{fontSize:28,marginBottom:8}}>📚 Python Chronicles</h1>
+          <p className="tm" style={{fontSize:14}}>Choose Your Chapter - Phase System</p>
+        </div>
+        
+        <div className="grid" style={{gap:12}}>
+          {chapters.map(ch => {
+            const unlocked = player.lv >= ch.reqLv;
+            const completed = player.dn.filter(id => id.startsWith(ch.id)).length === ch.quests.length;
+            
+            return (
+              <div 
+                key={ch.id}
+                className={`qi ${completed ? 'dn' : ''}`}
+                onClick={() => unlocked && onSelectChapter(ch.id)}
+                style={{opacity: unlocked ? 1 : 0.5, cursor: unlocked ? 'pointer' : 'not-allowed'}}
+              >
+                <div>
+                  <div style={{fontSize:24,marginBottom:4}}>{ch.icon}</div>
+                  <div className="tg" style={{fontSize:15,fontWeight:'bold'}}>{ch.name}</div>
+                  <div className="tm" style={{fontSize:11}}>{ch.desc}</div>
+                  {!unlocked && <div className="tr" style={{fontSize:10,marginTop:4}}>🔒 Requires Lv{ch.reqLv}</div>}
+                </div>
+                <div style={{textAlign:'right'}}>
+                  {completed && <div className="ts" style={{fontSize:11}}>✓ Complete</div>}
+                  <div className="tm" style={{fontSize:10}}>{ch.quests.length} quests</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        
+        <div style={{marginTop:20,textAlign:'center'}}>
+          <button className="btn bg" onClick={onRestart} style={{fontSize:12}}>🔄 Reset game</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// QUEST LIST
+const QuestList = ({ chapter, player, onSelectQuest, onBack }) => {
+  const chapterData = QUESTS[chapter];
+  
+  return (
+    <div className="ctr" style={{background:'linear-gradient(135deg,#0f172a,#1e293b)',minHeight:'calc(100vh - 60px)'}}>
+      <div className="box" style={{maxWidth:500}}>
+        <button className="btn bg" onClick={onBack} style={{fontSize:12,marginBottom:16}}>← Back</button>
+        
+        <div style={{textAlign:'center',marginBottom:20}}>
+          <div style={{fontSize:48}}>{chapterData.icon}</div>
+          <h2 className="tg" style={{fontSize:24}}>{chapterData.name}</h2>
+          <p className="tm" style={{fontSize:13}}>{chapterData.desc}</p>
+        </div>
+        
+        <div className="ql">
+          {chapterData.quests.map((q, idx) => {
+            const completed = player.dn.includes(q.id);
+            const isCurrent = idx === player.qi && player.ch === chapter;
+            
+            return (
+              <div 
+                key={q.id}
+                className={`qi ${completed ? 'dn' : ''} ${isCurrent ? 'cu' : ''}`}
+                onClick={() => onSelectQuest(idx)}
+              >
+                <div>
+                  <div style={{fontSize:20,marginBottom:4}}>{q.em}</div>
+                  <div className="tg" style={{fontSize:14,fontWeight:'bold'}}>{q.en}</div>
+                  <div className="tm" style={{fontSize:11}}>{q.phases.length} phases</div>
+                  {q.bs && <div className="tp" style={{fontSize:10}}>👑 BOSS</div>}
+                </div>
+                <div style={{textAlign:'right'}}>
+                  {completed && <div className="ts" style={{fontSize:11}}>✓</div>}
+                  <div className="tm" style={{fontSize:11}}>❤️ {q.hp}</div>
+                  <div className="tb" style={{fontSize:11}}>⭐ +{q.xp}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// BATTLE
+const Battle = ({ quest, player, onVictory, onGameOver, onBack, onUpdatePlayerHp }) => {
+  const [currentPhase, setCurrentPhase] = useState(0);
+  const [enemyHp, setEnemyHp] = useState(quest.hp);
+  const [code, setCode] = useState('');
+  const [output, setOutput] = useState('');
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [showTheory, setShowTheory] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [phaseAnimation, setPhaseAnimation] = useState(false);
+  
+  const phase = quest.phases[currentPhase];
+  const hpPerPhase = Math.ceil(quest.hp / quest.phases.length);
+
+  const handleRun = async () => {
+    setIsExecuting(true);
+    setOutput('Executing...');
+    
+    const result = await runPythonCode(code);
+    
+    if (result.success) {
+      const userOutput = result.output.trim();
+      const expectedOutput = phase.ex.trim();
+      
+      if (userOutput === expectedOutput) {
+        setOutput(`✅ Correct! Dealt ${hpPerPhase} damage!`);
+        const newEnemyHp = Math.max(0, enemyHp - hpPerPhase);
+        setEnemyHp(newEnemyHp);
+        
+        if (newEnemyHp === 0) {
+          setTimeout(() => onVictory(), 800);
+        } else if (currentPhase < quest.phases.length - 1) {
+          setTimeout(() => {
+            setPhaseAnimation(true);
+            setTimeout(() => {
+              setCurrentPhase(currentPhase + 1);
+              setCode('');
+              setOutput('');
+              setShowHint(false);
+              setPhaseAnimation(false);
+            }, 800);
+          }, 1000);
+        }
+      } else {
+        setOutput(`❌ Wrong result!\nGot: ${userOutput}\nExpected: ${expectedOutput}`);
+        const newPlayerHp = Math.max(0, player.hp - 20);
+        onUpdatePlayerHp(newPlayerHp);
+        if (newPlayerHp === 0) setTimeout(() => onGameOver(), 500);
+      }
+    } else {
+      setOutput(result.output);
+      const newPlayerHp = Math.max(0, player.hp - 15);
+      onUpdatePlayerHp(newPlayerHp);
+      if (newPlayerHp === 0) setTimeout(() => onGameOver(), 500);
+    }
+    
+    setIsExecuting(false);
+  };
+
+  return (
+    <div className="ctr" style={{background:'linear-gradient(135deg,#450a0a,#0f172a)',minHeight:'calc(100vh - 60px)'}}>
+      <div className="box" style={{maxWidth:700}}>
+        <div style={{display:'flex',gap:8,marginBottom:12}}>
+          <button className="btn bg" onClick={onBack} style={{fontSize:12,padding:'6px 12px'}}>← Back</button>
+          <button className="btn tp" onClick={()=>setShowTheory(!showTheory)} style={{fontSize:12,padding:'6px 12px'}}>
+            📖 Theory
+          </button>
+        </div>
+        
+        {showTheory && phase.th && (
+          <div className="box" style={{marginBottom:16,background:'rgba(124,58,237,.15)',borderColor:'#a855f7',border:'2px solid'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+              <div className="tp" style={{fontSize:15,fontWeight:'bold'}}>📖 {phase.tp}</div>
+              <button onClick={()=>setShowTheory(false)} style={{background:'transparent',border:'none',color:'#94a3b8',cursor:'pointer',fontSize:18}}>✕</button>
+            </div>
+            <p className="tm" style={{fontSize:13,lineHeight:1.6}}>{phase.th}</p>
+          </div>
+        )}
+        
+        <div className="grid grid2" style={{marginBottom:16}}>
+          <div className={`box ${phaseAnimation ? 'phaseAnim' : ''}`} style={{textAlign:'center',background:'rgba(15,23,42,.6)'}}>
+            <div style={{fontSize:48,marginBottom:6}}>{quest.em}</div>
+            <div className="tr" style={{fontSize:16,fontWeight:'bold',marginBottom:4}}>
+              {quest.en}
+              <span className={`phaseIndicator phase${phase.phase}`}>
+                Phase {phase.phase}/{quest.phases.length}
+              </span>
+            </div>
+            <div className="tm" style={{fontSize:11,marginBottom:8}}>{phase.tp}</div>
+            <div className="pbar">
+              <div className="pfill" style={{width:`${(enemyHp/quest.hp)*100}%`,background:'linear-gradient(90deg,#dc2626,#b91c1c)'}}></div>
+            </div>
+            <div className="tr" style={{fontSize:12,marginTop:4}}>❤️ {enemyHp}/{quest.hp}</div>
+          </div>
+          
+          <div className="box" style={{background:'rgba(15,23,42,.6)'}}>
+            <div className="tp" style={{fontSize:13,fontWeight:'bold',marginBottom:6}}>
+              📋 Task (Phase {phase.phase}):
+            </div>
+            <p className="tm" style={{fontSize:12,marginBottom:8}}>{phase.tk}</p>
+            <div className="ts" style={{fontSize:11,marginBottom:4}}>✓ Expected output:</div>
+            <div className="con" style={{minHeight:40,fontSize:11}}>{phase.ex}</div>
+          </div>
+        </div>
+
+        <div className="grid">
+          <div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+              <label className="tb" style={{fontSize:13,fontWeight:'bold'}}>💻 Your Python code:</label>
+              <button className="btn" onClick={()=>setShowHint(!showHint)} style={{fontSize:11,padding:'4px 10px',background:'#334155'}}>
+                {showHint ? '🙈 Hide' : '💡 Hint'}
+              </button>
+            </div>
+            <textarea 
+              className="code" 
+              value={code} 
+              onChange={(e)=>setCode(e.target.value)}
+              placeholder="# Write your Python code here..."
+              spellCheck="false"
+            />
+            {showHint && (
+              <div className="box" style={{marginTop:8,background:'rgba(139,92,246,.1)',borderColor:'#8b5cf6'}}>
+                <div className="tp" style={{fontSize:11,fontWeight:'bold',marginBottom:4}}>💡 Hint:</div>
+                <div className="tm" style={{fontSize:11,marginBottom:6}}>{phase.ls}</div>
+                <pre className="code" style={{fontSize:11,minHeight:'auto',padding:8}}>{phase.ht}</pre>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="ts" style={{fontSize:13,fontWeight:'bold',display:'block',marginBottom:6}}>📤 Output:</label>
+            <div className="con">{output || '(run code)'}</div>
+          </div>
+        </div>
+
+        <div style={{display:'flex',gap:10,marginTop:16}}>
+          <button className="btn bp" onClick={handleRun} disabled={isExecuting} style={{flex:1}}>
+            {isExecuting ? '⏳ Executing...' : '▶️ Run code'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// VICTORY
+const Victory = ({ quest, onClaim }) => (
+  <div className="ctr" style={{background:'linear-gradient(135deg,#064e3b,#0f172a,#064e3b)',minHeight:'calc(100vh - 60px)'}}>
+    <div className="box" style={{maxWidth:380,textAlign:'center',borderColor:'#22c55e'}}>
+      <div className="fl" style={{fontSize:56,marginBottom:12}}>{quest.em}⚔️</div>
+      <h1 className="ts" style={{fontSize:24,marginBottom:6}}>Victory!</h1>
+      <p className="tm" style={{marginBottom:16}}>You defeated {quest.en} through all {quest.phases.length} phases!</p>
+      <div className="box" style={{background:'rgba(0,0,0,.3)',marginBottom:16}}>
+        <div className="tg" style={{fontSize:15,marginBottom:6}}>🎁 Rewards:</div>
+        <div className="grid" style={{gap:8}}>
+          <div className="ts">⭐ +{quest.xp} XP</div>
+          <div className="tr">❤️ +30 HP</div>
+          {quest.bs && <div className="tp">🧪 +1 Potion</div>}
+        </div>
+      </div>
+      <button className="btn bs" onClick={onClaim} style={{width:'100%'}}>✅ Claim</button>
+    </div>
+  </div>
+);
+
+// GAME OVER
+const GameOver = ({ onRetry, onRestart }) => (
+  <div className="ctr" style={{background:'linear-gradient(135deg,#450a0a,#0f172a,#450a0a)',minHeight:'calc(100vh - 60px)'}}>
+    <div className="box" style={{maxWidth:380,textAlign:'center',borderColor:'#ef4444'}}>
+      <div style={{fontSize:56,marginBottom:12}}>💀</div>
+      <h1 className="tr" style={{fontSize:24,marginBottom:6}}>Game Over</h1>
+      <p className="tm" style={{marginBottom:16}}>Code failed...</p>
+      <div style={{display:'flex',gap:10,justifyContent:'center'}}>
+        <button className="btn bg" onClick={onRetry}>🔄 Retry</button>
+        <button className="btn bp" onClick={onRestart}>🏠 Restart</button>
+      </div>
+    </div>
+  </div>
+);
+
+// MAIN APP
+const App = () => {
+  const [screen, setScreen] = useState('loading');
+  const [player, setPlayer] = useState(null);
+  const [currentChapter, setCurrentChapter] = useState('novice');
+  const [currentQuestIndex, setCurrentQuestIndex] = useState(0);
+
+  useEffect(() => {
+    initPyodide().then(() => {
+      const savedData = localStorage.getItem('pc_en_save');
+      if (savedData) {
+        const data = JSON.parse(savedData);
+        setPlayer(data);
+        setCurrentChapter(data.ch);
+        setCurrentQuestIndex(data.qi);
+      } else {
+        setPlayer({hp:100,mhp:100,lv:1,xp:0,pt:1,rk:'📜 Novice',ch:'novice',qi:0,dn:[]});
+      }
+      setScreen('chapters');
+    });
+  }, []);
+
+  useEffect(() => {
+    if (player) localStorage.setItem('pc_en_save', JSON.stringify(player));
+  }, [player]);
+
+  if (screen === 'loading') return <LoadingScreen />;
+  if (!player) return null;
+
+  const restart = () => {
+    localStorage.removeItem('pc_en_save');
+    setPlayer({hp:100,mhp:100,lv:1,xp:0,pt:1,rk:'📜 Novice',ch:'novice',qi:0,dn:[]});
+    setCurrentChapter('novice');
+    setCurrentQuestIndex(0);
+    setScreen('chapters');
+  };
+
+  const usePot = () => {
+    if (player.pt > 0) {
+      setPlayer(prev => ({...prev, hp:Math.min(prev.mhp,prev.hp+50), pt:prev.pt-1}));
+    }
+  };
+
+  const selectChapter = (chapterId) => {
+    setCurrentChapter(chapterId);
+    setPlayer(prev => ({...prev, ch:chapterId, qi:0}));
+    setCurrentQuestIndex(0);
+    setScreen('chview');
+  };
+
+  const selectQuest = (questIndex) => {
+    setCurrentQuestIndex(questIndex);
+    setPlayer(prev => ({...prev, qi:questIndex}));
+    setScreen('battle');
+  };
+
+  const handleVictory = () => {
+    setScreen('victory');
+  };
+
+  const claimReward = () => {
+    const chapterData = QUESTS[currentChapter];
+    const quest = chapterData.quests[currentQuestIndex];
+    
+    const newXp = player.xp + quest.xp;
+    const newLv = Math.floor(1 + newXp / 100);
+    const newHp = Math.min(player.mhp, player.hp + 30);
+    const newPotions = quest.bs ? player.pt + 1 : player.pt;
+    const newDone = [...player.dn];
+    if (!newDone.includes(quest.id)) newDone.push(quest.id);
+
+    let newRank = player.rk;
+    if (newLv >= 15 && !player.rk.includes('Archmage')) newRank = '👑 Archmage';
+    else if (newLv >= 8 && !player.rk.includes('Mage') && !player.rk.includes('Archmage')) newRank = '🔮 Mage';
+
+    setPlayer(prev => ({...prev, xp:newXp, lv:newLv, hp:newHp, pt:newPotions, dn:newDone, rk:newRank}));
+
+    if (currentQuestIndex === chapterData.quests.length - 1) {
+      setScreen('chapters');
+    } else {
+      const nextQuestIndex = currentQuestIndex + 1;
+      setCurrentQuestIndex(nextQuestIndex);
+      setPlayer(prev => ({...prev, qi:nextQuestIndex}));
+      setScreen('chview');
+    }
+  };
+
+  const handleGameOver = () => {
+    setScreen('gameover');
+  };
+
+  const updatePlayerHp = (newHp) => {
+    setPlayer(prev => ({...prev, hp:newHp}));
+  };
+
+  const retryBattle = () => {
+    setPlayer(prev => ({...prev, hp:prev.mhp}));
+    setScreen('battle');
+  };
+
+  const currentQuest = QUESTS[currentChapter]?.quests[currentQuestIndex];
+
+  return (
+    <div>
+      <Header player={player} onUsePot={usePot} />
+      {screen === 'chapters' && <ChapterSelect player={player} onSelectChapter={selectChapter} onRestart={restart} />}
+      {screen === 'chview' && <QuestList chapter={currentChapter} player={player} onSelectQuest={selectQuest} onBack={()=>setScreen('chapters')} />}
+      {screen === 'battle' && currentQuest && <Battle quest={currentQuest} player={player} onVictory={handleVictory} onGameOver={handleGameOver} onBack={()=>setScreen('chview')} onUpdatePlayerHp={updatePlayerHp} />}
+      {screen === 'victory' && currentQuest && <Victory quest={currentQuest} onClaim={claimReward} />}
+      {screen === 'gameover' && <GameOver onRetry={retryBattle} onRestart={restart} />}
+    </div>
+  );
+};
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>

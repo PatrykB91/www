@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pythonowe Kroniki - Pełna Wersja Fazowa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Cinzel','Georgia',serif;
+  background:#0a0a0a;
+  color:#d4c5aa;
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(139,69,19,0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(75,0,130,0.1) 0%, transparent 50%);
+}
+
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes flicker{0%,100%{opacity:1}50%{opacity:0.8}}
+@keyframes shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+@keyframes phaseChange{
+  0%{transform:scale(1) rotate(0deg);opacity:1}
+  50%{transform:scale(1.2) rotate(180deg);opacity:0.3}
+  100%{transform:scale(1) rotate(360deg);opacity:1}
+}
+
+.fl{animation:float 3s ease-in-out infinite}
+.phaseAnim{animation:phaseChange 0.8s ease-in-out}
+
+.ctr{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+}
+
+.box{
+  background:linear-gradient(145deg, rgba(40,30,20,0.95), rgba(20,15,10,0.95));
+  border:2px solid #5a4a3a;
+  border-radius:4px;
+  padding:20px;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.8),
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    inset 0 -1px 0 rgba(0,0,0,0.5);
+  position:relative;
+}
+
+.btn{
+  cursor:pointer;
+  border:2px solid #3a2a1a;
+  padding:12px 24px;
+  border-radius:3px;
+  font-weight:bold;
+  font-size:13px;
+  font-family:'Cinzel',serif;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  transition:all .3s;
+  position:relative;
+  box-shadow:0 4px 8px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,0.8)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+.bp{background:linear-gradient(145deg,#1e3a5f,#0f1e3f);color:#c9d6e8;border-color:#2a4a6f}
+.bs{background:linear-gradient(145deg,#1a4d2e,#0d2618);color:#b8e6c9;border-color:#2a5d3e}
+.bg{background:linear-gradient(145deg,#2a2a2a,#1a1a1a);color:#c0c0c0;border-color:#3a3a3a}
+.bw{background:linear-gradient(145deg,#8b4513,#5a2d0d);color:#ffd7a3;border-color:#6a3d1d}
+.tp{background:linear-gradient(145deg,#4a1a4a,#2a0a2a);color:#e6b8e6;border-color:#6a2a6a}
+
+.pbar{
+  height:12px;
+  background:linear-gradient(180deg, #1a0a0a, #0a0000);
+  border:1px solid #3a1a1a;
+  border-radius:2px;
+  overflow:hidden;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,0.8);
+}
+.pfill{
+  height:100%;
+  transition:width .4s;
+  position:relative;
+  box-shadow:0 0 8px rgba(255,0,0,0.5);
+}
+
+.code{
+  background:#0d0d0d;
+  color:#8fbc8f;
+  font-family:'Courier New',monospace;
+  width:100%;
+  min-height:120px;
+  padding:14px;
+  border:2px solid #3a2a1a;
+  border-radius:3px;
+  resize:vertical;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,0.8);
+}
+.code:focus{
+  outline:none;
+  border-color:#6a4a2a;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,0.8), 0 0 12px rgba(139,69,19,0.3);
+}
+
+.con{
+  background:#000;
+  color:#9acd32;
+  padding:14px;
+  border:2px solid #2a4a2a;
+  border-radius:3px;
+  min-height:80px;
+  font-size:13px;
+  max-height:120px;
+  overflow-y:auto;
+  font-family:'Courier New',monospace;
+  box-shadow:inset 0 0 20px rgba(0,100,0,0.3),0 0 10px rgba(0,255,0,0.2);
+  animation:flicker 3s infinite;
+}
+
+.grid{display:grid;gap:16px}
+@media(min-width:800px){.grid2{grid-template-columns:1fr 1fr}}
+
+.qi{
+  padding:12px;
+  margin:6px 0;
+  border-radius:3px;
+  background:linear-gradient(145deg, rgba(40,30,20,0.8), rgba(20,15,10,0.8));
+  border:1px solid #3a2a1a;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  transition:all .2s;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,0.6);
+}
+.qi:hover{transform:translateX(4px);border-color:#6a4a2a;box-shadow:0 4px 12px rgba(0,0,0,0.8)}
+.qi.dn{border-left:3px solid #2a5d3e;background:linear-gradient(145deg, rgba(20,40,30,0.8), rgba(10,20,15,0.8))}
+.qi.cu{border-left:3px solid #8b4513;background:linear-gradient(145deg, rgba(60,40,20,0.9), rgba(40,25,10,0.9));box-shadow:0 0 20px rgba(139,69,19,0.4)}
+.ql{max-height:320px;overflow-y:auto}
+
+.tg{color:#d4af37}
+.tp{color:#c084fc}
+.tb{color:#87ceeb}
+.ts{color:#90ee90}
+.tr{color:#dc143c}
+.tm{color:#a0a0a0}
+
+.phaseIndicator{
+  display:inline-block;
+  padding:4px 12px;
+  border-radius:12px;
+  font-size:11px;
+  font-weight:bold;
+  margin-left:8px;
+}
+.phase1{background:rgba(34,197,94,0.2);color:#22c55e;border:1px solid #22c55e}
+.phase2{background:rgba(251,191,36,0.2);color:#fbbf24;border:1px solid #fbbf24}
+.phase3{background:rgba(239,68,68,0.2);color:#ef4444;border:1px solid #ef4444}
+
+.loading{text-align:center;padding:24px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+let pyodideInstance = null;
+
+async function initPyodide() {
+  if (pyodideInstance) return pyodideInstance;
+  try {
+    pyodideInstance = await loadPyodide({
+      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
+    });
+    return pyodideInstance;
+  } catch (error) {
+    console.error("Błąd ładowania Pyodide:", error);
+    return null;
+  }
+}
+
+async function runPythonCode(code) {
+  if (!pyodideInstance) await initPyodide();
+  if (!pyodideInstance) return { success: false, output: "Błąd inicjalizacji Pyodide" };
+
+  try {
+    pyodideInstance.runPython(`
+import sys
+from io import StringIO
+sys.stdout = StringIO()
+    `);
+
+    try {
+      pyodideInstance.runPython(code);
+    } catch (error) {
+      return { success: false, output: `Błąd wykonania: ${error.message}` };
+    }
+
+    const stdout = pyodideInstance.runPython("sys.stdout.getvalue()");
+    pyodideInstance.runPython(`sys.stdout = sys.__stdout__`);
+    return { success: true, output: stdout.trim() };
+  } catch (error) {
+    return { success: false, output: `Błąd: ${error.message}` };
+  }
+}
+
+// DANE QUESTÓW - 3 ROZDZIAŁY PO 10 QUESTÓW
+const QUESTS = {
+  novice: {
+    id: 'novice', 
+    name: 'Nowicjusz', 
+    icon: '⚔️', 
+    color: '#2a5d3e', 
+    reqLv: 1, 
+    nextLv: 8,
+    desc: 'Podstawy Pythona',
+    quests: [
+      {
+        id:'n1', en:'Wąż Literówka', em:'🐍', hp:90, xp:30, bs:0,
+        phases: [
+          {phase:1, tp:'print() - tekst', tk:'Wypisz: "Atak"', ex:'Atak', ht:'print("Atak")', ls:'print("tekst")', th:'Funkcja print() wyświetla tekst na ekranie. Tekst musi być w cudzysłowie " " lub \' \'.'},
+          {phase:2, tp:'print() - liczby', tk:'Wypisz: 42', ex:'42', ht:'print(42)', ls:'liczby bez cudzysłowów', th:'Liczby nie potrzebują cudzysłowów w print(). Python automatycznie wie że to liczba.'},
+          {phase:3, tp:'print() - wiele wartości', tk:'Wypisz "Moc:" i 100 (w jednej linii ze spacją)', ex:'Moc: 100', ht:'print("Moc:", 100)', ls:'print(a, b) dodaje spację', th:'print() może wypisać wiele rzeczy naraz oddzielonych przecinkiem. Automatycznie dodaje spację między nimi. print("A", "B") da "A B".'}
+        ]
+      },
+      {
+        id:'n2', en:'Echo Słów', em:'💀', hp:100, xp:35, bs:0,
+        phases: [
+          {phase:1, tp:'Wielokrotny print', tk:'Wypisz "Python" 2 razy (2 linie)', ex:'Python\nPython', ht:'print("Python")\nprint("Python")', ls:'powtórz print()', th:'Każde wywołanie print() tworzy NOWĄ LINIĘ. Dwa print() = dwie linie tekstu.'},
+          {phase:2, tp:'print() z \\n', tk:'Wypisz "A" i "B" w dwóch liniach (jeden print)', ex:'A\nB', ht:'print("A\\nB")', ls:'\\n = nowa linia', th:'Znak \\n (backslash + n) oznacza nową linię WEWNĄTRZ tekstu. "A\\nB" wypisze A, potem nową linię, potem B.'},
+          {phase:3, tp:'print() z sep', tk:'Wypisz "X", "Y", "Z" w osobnych liniach (jeden print z sep)', ex:'X\nY\nZ', ht:'print("X", "Y", "Z", sep="\\n")', ls:'sep="\\n" zmienia separator', th:'Parametr sep= określa CO ma być MIĘDZY wartościami. Domyślnie to spacja. sep="\\n" zmienia na nową linię.'}
+        ]
+      },
+      {
+        id:'n3', en:'Troll Zmiennych', em:'👹', hp:120, xp:40, bs:0,
+        phases: [
+          {phase:1, tp:'Zmienna liczbowa', tk:'moc=50, wypisz', ex:'50', ht:'moc = 50\nprint(moc)', ls:'zmienna = wartość', th:'Zmienne to pojemniki na dane. Tworzysz je pisząc: nazwa = wartość. Znak = to przypisanie (nie równość!). Nazwa może zawierać litery, cyfry i _, ale NIE może zaczynać się od cyfry.'},
+          {phase:2, tp:'Zmienna tekstowa', tk:'imie="Mag", wypisz', ex:'Mag', ht:'imie = "Mag"\nprint(imie)', ls:'tekst w ""', th:'Stringi (tekst) MUSZĄ być w cudzysłowie " " lub \' \'. Bez cudzysłowów Python pomyśli że to nazwa zmiennej! "Mag" to string, Mag to zmienna.'},
+          {phase:3, tp:'Dwie zmienne', tk:'x=10, y=20, wypisz obie', ex:'10\n20', ht:'x = 10\ny = 20\nprint(x)\nprint(y)', ls:'każda zmienna osobno', th:'Możesz tworzyć wiele zmiennych. Każda to osobny pojemnik. Zmienne pamiętają wartości do końca programu lub do nadpisania.'}
+        ]
+      },
+      {
+        id:'n4', en:'Golem Sumy', em:'⚒️', hp:130, xp:45, bs:0,
+        phases: [
+          {phase:1, tp:'Dodawanie liczb', tk:'a=30, b=20, wypisz a+b', ex:'50', ht:'a = 30\nb = 20\nprint(a + b)', ls:'+ dodaje', th:'Operator + dodaje liczby. Python automatycznie oblicza wynik.'},
+          {phase:2, tp:'Dodawanie 3 liczb', tk:'x=10, y=20, z=30, wypisz sumę', ex:'60', ht:'x = 10\ny = 20\nz = 30\nprint(x + y + z)', ls:'możesz dodawać wiele', th:'Możesz dodawać dowolnie wiele liczb.'},
+          {phase:3, tp:'Dodaj i zapisz', tk:'a=15, b=25, c=a+b, wypisz c', ex:'40', ht:'a = 15\nb = 25\nc = a + b\nprint(c)', ls:'wynik też w zmiennej', th:'Wynik operacji możesz zapisać w nowej zmiennej.'}
+        ]
+      },
+      {
+        id:'n5', en:'Strażnik Odejmowania', em:'⚔️', hp:140, xp:50, bs:0,
+        phases: [
+          {phase:1, tp:'Odejmowanie', tk:'hp=100, dmg=25, wypisz hp-dmg', ex:'75', ht:'hp = 100\ndmg = 25\nprint(hp - dmg)', ls:'- odejmuje', th:'Operator - odejmuje liczby.'},
+          {phase:2, tp:'Wiele odejmowań', tk:'x=100, wypisz x-20-10', ex:'70', ht:'x = 100\nprint(x - 20 - 10)', ls:'kolejne odejmowania', th:'Możesz odejmować wiele wartości po kolei.'},
+          {phase:3, tp:'Mix dodawania i odejmowania', tk:'a=50, b=30, c=10, wypisz a+b-c', ex:'70', ht:'a = 50\nb = 30\nc = 10\nprint(a + b - c)', ls:'kombinuj + i -', th:'Możesz łączyć dodawanie i odejmowanie w jednym wyrażeniu.'}
+        ]
+      },
+      {
+        id:'n6', en:'Mnożyciel', em:'🗝️', hp:150, xp:55, bs:0,
+        phases: [
+          {phase:1, tp:'Mnożenie podstawowe', tk:'x=10, wypisz x*3', ex:'30', ht:'x = 10\nprint(x * 3)', ls:'* mnoży', th:'Operator * mnoży liczby.'},
+          {phase:2, tp:'Mnożenie zmiennych', tk:'a=5, b=6, wypisz a*b', ex:'30', ht:'a = 5\nb = 6\nprint(a * b)', ls:'zmienna * zmienna', th:'Możesz mnożyć zmienne przez siebie.'},
+          {phase:3, tp:'Potęga', tk:'x=2, wypisz x**3 (2 do potęgi 3)', ex:'8', ht:'x = 2\nprint(x ** 3)', ls:'** to potęgowanie', th:'Operator ** podnosi liczbę do potęgi. 2**3 = 2*2*2 = 8'}
+        ]
+      },
+      {
+        id:'n7', en:'Łącznik Słów', em:'🔗', hp:160, xp:60, bs:0,
+        phases: [
+          {phase:1, tp:'Konkatenacja', tk:'a="Py", b="thon", wypisz a+b', ex:'Python', ht:'a = "Py"\nb = "thon"\nprint(a + b)', ls:'+ łączy stringi', th:'Operator + łączy teksty (konkatenacja).'},
+          {phase:2, tp:'Łączenie 3 stringów', tk:'x="A", y="B", z="C", wypisz x+y+z', ex:'ABC', ht:'x = "A"\ny = "B"\nz = "C"\nprint(x + y + z)', ls:'łącz wiele', th:'Możesz łączyć dowolnie wiele stringów.'},
+          {phase:3, tp:'String ze spacjami', tk:'Połącz "Hello" i "World" ze spacją', ex:'Hello World', ht:'a = "Hello"\nb = "World"\nprint(a + " " + b)', ls:'dodaj " " dla spacji', th:'Aby dodać spację, wstaw " " między stringi.'}
+        ]
+      },
+      {
+        id:'n8', en:'Cień Logiki', em:'🌑', hp:180, xp:70, bs:0,
+        phases: [
+          {phase:1, tp:'Warunek if', tk:'hp=100, jeśli >50 wypisz "Silny"', ex:'Silny', ht:'hp = 100\nif hp > 50:\n    print("Silny")', ls:'if warunek:\n    kod', th:'Instrukcja if wykonuje kod TYLKO gdy warunek jest prawdziwy. BARDZO WAŻNE: kod po if MUSI być wcięty (4 spacje lub Tab)! Bez wcięcia Python zgłosi błąd.'},
+          {phase:2, tp:'if-else', tk:'mana=30, >=50:"Moc", else:"NIE"', ex:'NIE', ht:'mana = 30\nif mana >= 50:\n    print("Moc")\nelse:\n    print("NIE")', ls:'else dla fałszu', th:'Else wykonuje się gdy warunek if jest FAŁSZYWY. To plan awaryjny - if nie zadziałał, więc wykonaj else. Oba bloki muszą być wcięte!'},
+          {phase:3, tp:'Operator ==', tk:'kod=1234, jeśli ==1234 wypisz "OK"', ex:'OK', ht:'kod = 1234\nif kod == 1234:\n    print("OK")', ls:'== to porównanie', th:'UWAGA: == (dwa znaki!) sprawdza równość - to pytanie! Jeden = to przypisanie wartości. if x == 5 pyta "czy x równa się 5?", x = 5 ustawia x na 5.'}
+        ]
+      },
+      {
+        id:'n9', en:'Demon Warunków', em:'😈', hp:200, xp:80, bs:0,
+        phases: [
+          {phase:1, tp:'Operator >=', tk:'x=50, jeśli >=50 wypisz "Max"', ex:'Max', ht:'x = 50\nif x >= 50:\n    print("Max")', ls:'>= większe lub równe', th:'>= sprawdza czy wartość jest większa LUB równa.'},
+          {phase:2, tp:'Operator !=', tk:'status="aktywny", jeśli !="martwy" wypisz "Żyje"', ex:'Żyje', ht:'status = "aktywny"\nif status != "martwy":\n    print("Żyje")', ls:'!= to nierówność', th:'!= sprawdza czy wartości są RÓŻNE.'},
+          {phase:3, tp:'elif', tk:'lv=7, >10:"A", >5:"B", else:"C"', ex:'B', ht:'lv = 7\nif lv > 10:\n    print("A")\nelif lv > 5:\n    print("B")\nelse:\n    print("C")', ls:'elif = else if', th:'elif pozwala sprawdzić kolejne warunki gdy poprzednie są fałszywe.'}
+        ]
+      },
+      {
+        id:'n10', en:'BOSS: Arcanus', em:'☠️', hp:250, xp:120, bs:1,
+        phases: [
+          {phase:1, tp:'Kombinacja basic', tk:'x=10, y=5, wypisz x+y', ex:'15', ht:'x = 10\ny = 5\nprint(x + y)', ls:'zmienne + dodawanie', th:'Łącz podstawy: zmienne i operacje matematyczne.'},
+          {phase:2, tp:'Warunek z matematyką', tk:'a=20, b=10, jeśli a>b wypisz a-b', ex:'10', ht:'a = 20\nb = 10\nif a > b:\n    print(a - b)', ls:'if + matematyka', th:'W if możesz umieszczać wyrażenia matematyczne.'},
+          {phase:3, tp:'FINAŁ', tk:'x=15, y=10, jeśli x>y wypisz x+y, else x-y', ex:'25', ht:'x = 15\ny = 10\nif x > y:\n    print(x + y)\nelse:\n    print(x - y)', ls:'WSZYSTKO RAZEM!', th:'FINAŁ! Zmienne, matematyka, logika - to fundament programowania!'}
+        ]
+      }
+    ]
+  },
+  mage: {
+    id: 'mage', 
+    name: 'Mag', 
+    icon: '🔥', 
+    color: '#1e3a5f', 
+    reqLv: 8, 
+    nextLv: 15,
+    desc: 'Pętle i struktury danych',
+    quests: [
+      {
+        id:'m1', en:'Golem Pętli', em:'🔄', hp:200, xp:90, bs:0,
+        phases: [
+          {phase:1, tp:'Pętla range()', tk:'for i in range(3): wypisz "X"', ex:'X\nX\nX', ht:'for i in range(3):\n    print("X")', ls:'range(n) = n powtórzeń', th:'Pętla for powtarza kod określoną liczbę razy. range(3) to sekwencja 0,1,2 - trzy liczby, więc kod wykona się 3 razy. Kod w pętli MUSI być wcięty!'},
+          {phase:2, tp:'Używanie zmiennej i', tk:'for i in range(3): wypisz i', ex:'0\n1\n2', ht:'for i in range(3):\n    print(i)', ls:'i przyjmuje kolejne wartości', th:'Zmienna i (możesz nazwać ją jak chcesz) przyjmuje kolejne wartości z range(). range(3) daje 0,1,2 (zaczyna od 0!). Możesz używać tej zmiennej w obliczeniach.'},
+          {phase:3, tp:'range(start, stop)', tk:'for i in range(5,8): wypisz i', ex:'5\n6\n7', ht:'for i in range(5, 8):\n    print(i)', ls:'range(start, stop)', th:'range(5,8) generuje 5,6,7 - zaczyna od 5 i kończy PRZED 8 (stop jest wyłączony!). Przydatne gdy nie chcesz zaczynać od zera.'}
+        ]
+      },
+      {
+        id:'m2', en:'Licznik Magiczny', em:'🕯️', hp:220, xp:100, bs:0,
+        phases: [
+          {phase:1, tp:'Pętla z obliczeniami', tk:'for i in range(3): wypisz i*2', ex:'0\n2\n4', ht:'for i in range(3):\n    print(i * 2)', ls:'używaj i w obliczeniach', th:'Zmienną pętli możesz używać w wyrażeniach matematycznych.'},
+          {phase:2, tp:'Suma w pętli', tk:'s=0, pętla range(4), s=s+i, wypisz s po pętli', ex:'6', ht:'s = 0\nfor i in range(4):\n    s = s + i\nprint(s)', ls:'akumulacja wartości', th:'0+0+1+2+3=6. Pętla może akumulować wartości w zmiennej.'},
+          {phase:3, tp:'range(start,stop,step)', tk:'for i in range(0,10,2): wypisz i', ex:'0\n2\n4\n6\n8', ht:'for i in range(0, 10, 2):\n    print(i)', ls:'step=krok', th:'range(0,10,2) co drugi: 0,2,4,6,8. Trzeci parametr to krok.'}
+        ]
+      },
+      {
+        id:'m3', en:'Hydra List', em:'🐉', hp:240, xp:110, bs:0,
+        phases: [
+          {phase:1, tp:'Lista podstawowa', tk:'a=["X","Y","Z"], wypisz a[1]', ex:'Y', ht:'a = ["X", "Y", "Z"]\nprint(a[1])', ls:'lista[indeks], od 0', th:'Lista to uporządkowana kolekcja w nawiasach []. WAŻNE: Python liczy od 0! a[0]="X" (pierwszy!), a[1]="Y" (drugi!), a[2]="Z" (trzeci!). To częsty błąd początkujących.'},
+          {phase:2, tp:'Indeks ujemny', tk:'b=["A","B","C"], wypisz b[-1]', ex:'C', ht:'b = ["A", "B", "C"]\nprint(b[-1])', ls:'-1 = ostatni', th:'Indeksy ujemne liczą od końca! -1 to ostatni element, -2 to przedostatni, -3 to trzeci od końca. Super wygodne gdy nie znasz długości listy.'},
+          {phase:3, tp:'Lista liczb', tk:'nums=[10,20,30], wypisz nums[0]+nums[2]', ex:'40', ht:'nums = [10, 20, 30]\nprint(nums[0] + nums[2])', ls:'operacje na elementach', th:'Elementy listy możesz używać w obliczeniach! nums[0]=10, nums[2]=30, więc 10+30=40. Lista może zawierać liczby, stringi, inne listy - co chcesz!'}
+        ]
+      },
+      {
+        id:'m4', en:'Strażnik Indeksu', em:'🗿', hp:260, xp:120, bs:0,
+        phases: [
+          {phase:1, tp:'Modyfikacja elementu', tk:'a=[1,2,3], zmień a[1] na 99, wypisz a[1]', ex:'99', ht:'a = [1, 2, 3]\na[1] = 99\nprint(a[1])', ls:'lista[i] = nowa_wartość', th:'Elementy list możesz zmieniać przez przypisanie.'},
+          {phase:2, tp:'append()', tk:'lst=[], dodaj append(5), wypisz lst[0]', ex:'5', ht:'lst = []\nlst.append(5)\nprint(lst[0])', ls:'append dodaje na koniec', th:'Metoda append() dodaje element na koniec listy.'},
+          {phase:3, tp:'len()', tk:'x=[1,2,3,4], wypisz len(x)', ex:'4', ht:'x = [1, 2, 3, 4]\nprint(len(x))', ls:'len() = długość', th:'Funkcja len() zwraca liczbę elementów w liście.'}
+        ]
+      },
+      {
+        id:'m5', en:'Zaklinacz Pętli', em:'🎯', hp:280, xp:130, bs:0,
+        phases: [
+          {phase:1, tp:'for in lista', tk:'for x in [1,2,3]: wypisz x', ex:'1\n2\n3', ht:'for x in [1, 2, 3]:\n    print(x)', ls:'iteruj po elementach', th:'for x in lista iteruje bezpośrednio po elementach.'},
+          {phase:2, tp:'for in string', tk:'for c in "ABC": wypisz c', ex:'A\nB\nC', ht:'for c in "ABC":\n    print(c)', ls:'stringi też iterowalne', th:'Stringi też można iterować - każda litera osobno.'},
+          {phase:3, tp:'Lista stringów', tk:'for s in ["Kot","Pies"]: wypisz s', ex:'Kot\nPies', ht:'for s in ["Kot", "Pies"]:\n    print(s)', ls:'lista może mieć stringi', th:'Listy mogą zawierać różne typy, np. stringi.'}
+        ]
+      },
+      {
+        id:'m6', en:'Mistrz While', em:'⚡', hp:300, xp:140, bs:0,
+        phases: [
+          {phase:1, tp:'while podstawowy', tk:'x=0, while x<3: wypisz x, x+=1', ex:'0\n1\n2', ht:'x = 0\nwhile x < 3:\n    print(x)\n    x += 1', ls:'while warunek:', th:'while wykonuje kod dopóki warunek jest prawdziwy.'},
+          {phase:2, tp:'Odliczanie', tk:'n=3, while n>0: wypisz n, n-=1', ex:'3\n2\n1', ht:'n = 3\nwhile n > 0:\n    print(n)\n    n -= 1', ls:'while może odliczać', th:'while świetnie nadaje się do odliczania w dół.'},
+          {phase:3, tp:'break', tk:'i=0, while True: wypisz i, i+=1, if i==2: break', ex:'0\n1', ht:'i = 0\nwhile True:\n    print(i)\n    i += 1\n    if i == 2:\n        break', ls:'break kończy pętlę', th:'break natychmiast przerywa pętlę.'}
+        ]
+      },
+      {
+        id:'m7', en:'Słownik Tajemnic', em:'📖', hp:320, xp:150, bs:0,
+        phases: [
+          {phase:1, tp:'Dict podstawowy', tk:'d={"a":1,"b":2}, wypisz d["a"]', ex:'1', ht:'d = {"a": 1, "b": 2}\nprint(d["a"])', ls:'słownik[klucz]', th:'Słowniki przechowują pary klucz:wartość. Dostęp przez klucz: dict[klucz].'},
+          {phase:2, tp:'Dodawanie do dict', tk:'d={}, d["x"]=10, wypisz d["x"]', ex:'10', ht:'d = {}\nd["x"] = 10\nprint(d["x"])', ls:'dict[klucz] = wartość', th:'Nowe pary klucz:wartość dodajesz przez przypisanie.'},
+          {phase:3, tp:'Wartości z dict', tk:'d={"imie":"Mag","moc":100}, wypisz d["moc"]', ex:'100', ht:'d = {"imie": "Mag", "moc": 100}\nprint(d["moc"])', ls:'klucz może być stringiem', th:'Klucze słownika mogą być różnych typów - stringi, liczby itp.'}
+        ]
+      },
+      {
+        id:'m8', en:'Architekt Funkcji', em:'🏗️', hp:340, xp:160, bs:0,
+        phases: [
+          {phase:1, tp:'Funkcja def', tk:'def f(): print("Hi")\nwywołaj f()', ex:'Hi', ht:'def f():\n    print("Hi")\nf()', ls:'def nazwa():', th:'def definiuje funkcję. Wywołujesz przez nazwa().'},
+          {phase:2, tp:'Parametr', tk:'def say(x): print(x)\nsay("OK")', ex:'OK', ht:'def say(x):\n    print(x)\nsay("OK")', ls:'parametry w ()', th:'Funkcje mogą przyjmować parametry.'},
+          {phase:3, tp:'return', tk:'def add(a,b): return a+b\nwypisz add(3,4)', ex:'7', ht:'def add(a, b):\n    return a + b\nprint(add(3, 4))', ls:'return zwraca wartość', th:'return zwraca wynik z funkcji.'}
+        ]
+      },
+      {
+        id:'m9', en:'Mistrz Comprehension', em:'✨', hp:360, xp:170, bs:0,
+        phases: [
+          {phase:1, tp:'List comprehension', tk:'a=[x*2 for x in range(3)], wypisz a', ex:'[0, 2, 4]', ht:'a = [x * 2 for x in range(3)]\nprint(a)', ls:'[wyrażenie for x in ...]', th:'List comprehension tworzy listę w jednej linii.'},
+          {phase:2, tp:'Comprehension z if', tk:'a=[x for x in range(5) if x>2], wypisz a', ex:'[3, 4]', ht:'a = [x for x in range(5) if x > 2]\nprint(a)', ls:'dodaj if na końcu', th:'Możesz filtrować elementy dodając if.'},
+          {phase:3, tp:'Dict comprehension', tk:'d={x:x**2 for x in range(3)}, wypisz d', ex:'{0: 0, 1: 1, 2: 4}', ht:'d = {x: x**2 for x in range(3)}\nprint(d)', ls:'{k:v for x in ...}', th:'Dict comprehension tworzy słownik analogicznie.'}
+        ]
+      },
+      {
+        id:'m10', en:'BOSS: Władca Kodów', em:'☠️', hp:450, xp:250, bs:1,
+        phases: [
+          {phase:1, tp:'Funkcja z listą', tk:'def sum_list(lst): return sum(lst)\nwypisz sum_list([1,2,3])', ex:'6', ht:'def sum_list(lst):\n    return sum(lst)\nprint(sum_list([1, 2, 3]))', ls:'funkcja sum()', th:'Funkcja sum() sumuje elementy listy.'},
+          {phase:2, tp:'Pętla w funkcji', tk:'def count_to(n):\n  for i in range(n):\n    print(i)\ncount_to(3)', ex:'0\n1\n2', ht:'def count_to(n):\n    for i in range(n):\n        print(i)\ncount_to(3)', ls:'funkcja + pętla', th:'Funkcje mogą zawierać pętle.'},
+          {phase:3, tp:'FINAŁ MAGA', tk:'def proc(lst): return [x*2 for x in lst if x>1]\nwypisz proc([1,2,3])', ex:'[4, 6]', ht:'def proc(lst):\n    return [x * 2 for x in lst if x > 1]\nprint(proc([1, 2, 3]))', ls:'WSZYSTKO!', th:'FINAŁ! Funkcja + comprehension + filtrowanie. Jesteś Magiem!'}
+        ]
+      }
+    ]
+  },
+  archmage: {
+    id: 'archmage', 
+    name: 'Arcymag', 
+    icon: '👑', 
+    color: '#4a1a4a', 
+    reqLv: 15, 
+    nextLv: 999,
+    desc: 'Zaawansowane techniki',
+    quests: [
+      {
+        id:'a1', en:'Łowca Wyjątków', em:'🎯', hp:350, xp:180, bs:0,
+        phases: [
+          {phase:1, tp:'try-except basic', tk:'try: print(1/1)\nexcept: print("Błąd")', ex:'1.0', ht:'try:\n    print(1 / 1)\nexcept:\n    print("Błąd")', ls:'try: kod\nexcept: obsługa', th:'try-except łapie błędy w kodzie.'},
+          {phase:2, tp:'Łapanie błędu', tk:'try: print(1/0)\nexcept: print("Błąd")', ex:'Błąd', ht:'try:\n    print(1 / 0)\nexcept:\n    print("Błąd")', ls:'dzielenie przez 0 = błąd', th:'Dzielenie przez 0 wywołuje błąd, except go łapie.'},
+          {phase:3, tp:'Konkretny wyjątek', tk:'try: int("x")\nexcept ValueError: print("ZLE")', ex:'ZLE', ht:'try:\n    int("x")\nexcept ValueError:\n    print("ZLE")', ls:'except NazwaWyjątku:', th:'Możesz łapać konkretne typy błędów jak ValueError.'}
+        ]
+      },
+      {
+        id:'a2', en:'Mistrz Lambda', em:'λ', hp:380, xp:200, bs:0,
+        phases: [
+          {phase:1, tp:'Lambda podstawowa', tk:'f=lambda x:x*2, wypisz f(5)', ex:'10', ht:'f = lambda x: x * 2\nprint(f(5))', ls:'lambda param: wyrażenie', th:'Lambda to krótka anonimowa funkcja.'},
+          {phase:2, tp:'Lambda z 2 param', tk:'add=lambda a,b:a+b, wypisz add(3,7)', ex:'10', ht:'add = lambda a, b: a + b\nprint(add(3, 7))', ls:'lambda a,b: ...', th:'Lambda może mieć wiele parametrów.'},
+          {phase:3, tp:'map()', tk:'a=list(map(lambda x:x**2,[1,2,3])), wypisz a', ex:'[1, 4, 9]', ht:'a = list(map(lambda x: x**2, [1, 2, 3]))\nprint(a)', ls:'map(funkcja, lista)', th:'map() aplikuje funkcję do każdego elementu listy.'}
+        ]
+      },
+      {
+        id:'a3', en:'Strażnik Dekoratorów', em:'🎭', hp:400, xp:220, bs:0,
+        phases: [
+          {phase:1, tp:'Dekorator basic', tk:'def deco(f):\n  def wrap():\n    return f()+"!"\n  return wrap\n@deco\ndef hi():\n  return "Hi"\nprint(hi())', ex:'Hi!', ht:'def deco(f):\n    def wrap():\n        return f() + "!"\n    return wrap\n@deco\ndef hi():\n    return "Hi"\nprint(hi())', ls:'@dekorator\ndef f():', th:'Dekorator modyfikuje zachowanie funkcji.'},
+          {phase:2, tp:'Dekorator z print', tk:'def log(f):\n  def wrap():\n    print("START")\n    f()\n  return wrap\n@log\ndef go():\n  print("GO")\ngo()', ex:'START\nGO', ht:'def log(f):\n    def wrap():\n        print("START")\n        f()\n    return wrap\n@log\ndef go():\n    print("GO")\ngo()', ls:'dekorator może dodawać kod', th:'Dekorator może wykonywać dodatkowy kod przed/po funkcji.'},
+          {phase:3, tp:'Dekorator zwielokrotniający', tk:'def x2(f):\n  def w():\n    f()\n    f()\n  return w\n@x2\ndef say():\n  print("A")\nsay()', ex:'A\nA', ht:'def x2(f):\n    def w():\n        f()\n        f()\n    return w\n@x2\ndef say():\n    print("A")\nsay()', ls:'dekorator może wielokrotnie wywołać', th:'Dekorator może zmieniać liczbę wywołań.'}
+        ]
+      },
+      {
+        id:'a4', en:'Generator Mocy', em:'⚙️', hp:420, xp:240, bs:0,
+        phases: [
+          {phase:1, tp:'yield basic', tk:'def gen():\n  yield 1\n  yield 2\nfor x in gen():\n  print(x)', ex:'1\n2', ht:'def gen():\n    yield 1\n    yield 2\nfor x in gen():\n    print(x)', ls:'yield zwraca wartość', th:'yield tworzy generator - funkcję zwracającą kolejne wartości.'},
+          {phase:2, tp:'Generator range', tk:'def r(n):\n  i=0\n  while i<n:\n    yield i\n    i+=1\nfor x in r(3):\n  print(x)', ex:'0\n1\n2', ht:'def r(n):\n    i = 0\n    while i < n:\n        yield i\n        i += 1\nfor x in r(3):\n    print(x)', ls:'generator w pętli', th:'Generatory są pamięciooszczędne - generują wartości na żądanie.'},
+          {phase:3, tp:'Generator expression', tk:'g=(x**2 for x in range(3))\nfor v in g:\n  print(v)', ex:'0\n1\n4', ht:'g = (x**2 for x in range(3))\nfor v in g:\n    print(v)', ls:'() zamiast []', th:'() tworzy generator expression - jak list comprehension ale leniwszy.'}
+        ]
+      },
+      {
+        id:'a5', en:'Klasowy Wojownik', em:'⚔️', hp:440, xp:260, bs:0,
+        phases: [
+          {phase:1, tp:'Klasa __init__', tk:'class X:\n  def __init__(self,v):\n    self.v=v\nx=X(5)\nprint(x.v)', ex:'5', ht:'class X:\n    def __init__(self, v):\n        self.v = v\nx = X(5)\nprint(x.v)', ls:'konstruktor', th:'__init__ to konstruktor - inicjalizuje obiekt.'},
+          {phase:2, tp:'Metoda klasy', tk:'class C:\n  def say(self):\n    return "Hi"\nc=C()\nprint(c.say())', ex:'Hi', ht:'class C:\n    def say(self):\n        return "Hi"\nc = C()\nprint(c.say())', ls:'metody mają self', th:'Metody to funkcje w klasie. self odnosi się do obiektu.'},
+          {phase:3, tp:'Atrybut + metoda', tk:'class P:\n  def __init__(self,n):\n    self.n=n\n  def show(self):\n    return self.n\np=P("A")\nprint(p.show())', ex:'A', ht:'class P:\n    def __init__(self, n):\n        self.n = n\n    def show(self):\n        return self.n\np = P("A")\nprint(p.show())', ls:'self.atrybut', th:'Atrybuty przechowują stan obiektu, metody operują na nim.'}
+        ]
+      },
+      {
+        id:'a6', en:'Mag Dziedziczenia', em:'🧬', hp:460, xp:280, bs:0,
+        phases: [
+          {phase:1, tp:'Dziedziczenie basic', tk:'class A:\n  def f(self):\n    return 1\nclass B(A):\n  pass\nb=B()\nprint(b.f())', ex:'1', ht:'class A:\n    def f(self):\n        return 1\nclass B(A):\n    pass\nb = B()\nprint(b.f())', ls:'class B(A):', th:'B dziedziczy po A - ma dostęp do metod A.'},
+          {phase:2, tp:'Override metody', tk:'class A:\n  def f(self):\n    return 1\nclass B(A):\n  def f(self):\n    return 2\nb=B()\nprint(b.f())', ex:'2', ht:'class A:\n    def f(self):\n        return 1\nclass B(A):\n    def f(self):\n        return 2\nb = B()\nprint(b.f())', ls:'nadpisz metodę', th:'Klasa potomna może nadpisać metodę rodzica.'},
+          {phase:3, tp:'super()', tk:'class A:\n  def __init__(self,x):\n    self.x=x\nclass B(A):\n  def __init__(self,x):\n    super().__init__(x)\nb=B(5)\nprint(b.x)', ex:'5', ht:'class A:\n    def __init__(self, x):\n        self.x = x\nclass B(A):\n    def __init__(self, x):\n        super().__init__(x)\nb = B(5)\nprint(b.x)', ls:'super() wywołuje rodzica', th:'super() pozwala wywołać metodę klasy rodzica.'}
+        ]
+      },
+      {
+        id:'a7', en:'Właściciel Property', em:'🔑', hp:480, xp:300, bs:0,
+        phases: [
+          {phase:1, tp:'@property getter', tk:'class C:\n  @property\n  def x(self):\n    return 10\nc=C()\nprint(c.x)', ex:'10', ht:'class C:\n    @property\n    def x(self):\n        return 10\nc = C()\nprint(c.x)', ls:'@property', th:'@property zamienia metodę w atrybut (bez ()).'},
+          {phase:2, tp:'Property z atrybutem', tk:'class C:\n  def __init__(self):\n    self._v=5\n  @property\n  def v(self):\n    return self._v\nc=C()\nprint(c.v)', ex:'5', ht:'class C:\n    def __init__(self):\n        self._v = 5\n    @property\n    def v(self):\n        return self._v\nc = C()\nprint(c.v)', ls:'enkapsulacja', th:'Property może zwracać wartość prywatnego atrybutu.'},
+          {phase:3, tp:'setter', tk:'class C:\n  def __init__(self):\n    self._x=0\n  @property\n  def x(self):\n    return self._x\n  @x.setter\n  def x(self,v):\n    self._x=v\nc=C()\nc.x=7\nprint(c.x)', ex:'7', ht:'class C:\n    def __init__(self):\n        self._x = 0\n    @property\n    def x(self):\n        return self._x\n    @x.setter\n    def x(self, v):\n        self._x = v\nc = C()\nc.x = 7\nprint(c.x)', ls:'@nazwa.setter', th:'setter pozwala przypisywać wartości jak do atrybutu.'}
+        ]
+      },
+      {
+        id:'a8', en:'Czarodziej *args', em:'✨', hp:500, xp:320, bs:0,
+        phases: [
+          {phase:1, tp:'*args', tk:'def f(*args):\n  print(args)\nf(1,2,3)', ex:'(1, 2, 3)', ht:'def f(*args):\n    print(args)\nf(1, 2, 3)', ls:'*args = dowolna liczba arg', th:'*args zbiera wszystkie argumenty pozycyjne w krotkę.'},
+          {phase:2, tp:'Iteracja po *args', tk:'def sum_all(*args):\n  s=0\n  for x in args:\n    s+=x\n  return s\nprint(sum_all(1,2,3))', ex:'6', ht:'def sum_all(*args):\n    s = 0\n    for x in args:\n        s += x\n    return s\nprint(sum_all(1, 2, 3))', ls:'iteruj po args', th:'args to krotka - możesz po niej iterować.'},
+          {phase:3, tp:'**kwargs', tk:'def f(**kw):\n  print(kw)\nf(a=1,b=2)', ex:"{'a': 1, 'b': 2}", ht:'def f(**kw):\n    print(kw)\nf(a=1, b=2)', ls:'**kwargs = nazwane arg', th:'**kwargs zbiera nazwane argumenty w słownik.'}
+        ]
+      },
+      {
+        id:'a9', en:'Mistrz Context Manager', em:'🚪', hp:520, xp:340, bs:0,
+        phases: [
+          {phase:1, tp:'with statement', tk:'class C:\n  def __enter__(self):\n    return "IN"\n  def __exit__(self,*a):\n    pass\nwith C() as x:\n  print(x)', ex:'IN', ht:'class C:\n    def __enter__(self):\n        return "IN"\n    def __exit__(self, *a):\n        pass\nwith C() as x:\n    print(x)', ls:'__enter__ i __exit__', th:'with używa __enter__ i __exit__ dla zarządzania zasobami.'},
+          {phase:2, tp:'Context z kodem', tk:'class C:\n  def __enter__(self):\n    print("START")\n  def __exit__(self,*a):\n    print("END")\nwith C():\n  print("MID")', ex:'START\nMID\nEND', ht:'class C:\n    def __enter__(self):\n        print("START")\n    def __exit__(self, *a):\n        print("END")\nwith C():\n    print("MID")', ls:'automatyczne sprzątanie', th:'__exit__ zawsze się wykona - idealne do zamykania plików/połączeń.'},
+          {phase:3, tp:'Context z return', tk:'class C:\n  def __enter__(self):\n    return 42\n  def __exit__(self,*a):\n    pass\nwith C() as v:\n  print(v*2)', ex:'84', ht:'class C:\n    def __enter__(self):\n        return 42\n    def __exit__(self, *a):\n        pass\nwith C() as v:\n    print(v * 2)', ls:'__enter__ zwraca wartość', th:'__enter__ może zwracać wartość która będzie dostępna po as.'}
+        ]
+      },
+      {
+        id:'a10', en:'BOSS: Arcymag Ostateczny', em:'☠️', hp:700, xp:500, bs:1,
+        phases: [
+          {phase:1, tp:'Klasa z dekoratorem', tk:'def log(f):\n  def w(self):\n    print("LOG")\n    return f(self)\n  return w\nclass C:\n  @log\n  def go(self):\n    return "OK"\nc=C()\nprint(c.go())', ex:'LOG\nOK', ht:'def log(f):\n    def w(self):\n        print("LOG")\n        return f(self)\n    return w\nclass C:\n    @log\n    def go(self):\n        return "OK"\nc = C()\nprint(c.go())', ls:'dekorator w klasie', th:'Dekoratory działają też z metodami klas!'},
+          {phase:2, tp:'Generator + comprehension', tk:'def g():\n  for i in range(3):\n    yield i*2\na=[x+1 for x in g()]\nprint(a)', ex:'[1, 3, 5]', ht:'def g():\n    for i in range(3):\n        yield i * 2\na = [x + 1 for x in g()]\nprint(a)', ls:'generator + comp', th:'Generator można użyć w comprehension!'},
+          {phase:3, tp:'WSZYSTKO RAZEM', tk:'class M:\n  def __init__(self,v):\n    self.v=v\n  @property\n  def val(self):\n    return self.v*2\nm=M(5)\nprint(m.val)', ex:'10', ht:'class M:\n    def __init__(self, v):\n        self.v = v\n    @property\n    def val(self):\n        return self.v * 2\nm = M(5)\nprint(m.val)', ls:'FINAŁ ARCYMAGA!', th:'ARCYMAG! Klasa + konstruktor + property. Opanowałeś Pythona!'}
+        ]
+      }
+    ]
+  }
+};
+
+// LOADING SCREEN
+const LoadingScreen = () => (
+  <div className="ctr">
+    <div className="box" style={{maxWidth:400,textAlign:'center'}}>
+      <div className="fl" style={{fontSize:64,marginBottom:16}}>🐍</div>
+      <h2 className="tp" style={{fontSize:22,marginBottom:8}}>Ładowanie Pyodide...</h2>
+      <p className="tm" style={{fontSize:14}}>Interpreter Python uruchamia się...</p>
+      <div className="pbar" style={{marginTop:16}}>
+        <div className="pfill" style={{width:'100%',background:'linear-gradient(90deg,#3b82f6,#8b5cf6)'}}></div>
+      </div>
+    </div>
+  </div>
+);
+
+// HEADER
+const Header = ({ player, onUsePot }) => {
+  const handleUsePot = () => {
+    if (player.pt > 0 && player.hp < player.mhp) onUsePot();
+  };
+
+  return (
+    <div style={{background:'linear-gradient(135deg,#1e293b,#334155)',padding:'12px 16px',borderBottom:'2px solid rgba(148,163,184,.3)',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
+      <div style={{display:'flex',alignItems:'center',gap:12}}>
+        <div style={{fontSize:28}}>🧙‍♂️</div>
+        <div>
+          <div className="tg" style={{fontSize:15,fontWeight:'bold'}}>{player.rk}</div>
+          <div className="tm" style={{fontSize:12}}>Level {player.lv}</div>
+        </div>
+      </div>
+      <div style={{display:'flex',gap:12,alignItems:'center'}}>
+        <div style={{minWidth:140}}>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:2}}>
+            <span className="tr" style={{fontSize:12}}>❤️ {player.hp}/{player.mhp}</span>
+            <span className="tb" style={{fontSize:12}}>⭐ {player.xp} XP</span>
+          </div>
+          <div className="pbar">
+            <div className="pfill" style={{width:`${(player.hp/player.mhp)*100}%`,background:'linear-gradient(90deg,#ef4444,#dc2626)'}}></div>
+          </div>
+        </div>
+        <button className="btn bw" onClick={handleUsePot} disabled={player.pt===0 || player.hp===player.mhp} style={{fontSize:12,padding:'6px 12px'}}>
+          🧪 {player.pt}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// CHAPTER SELECT
+const ChapterSelect = ({ player, onSelectChapter, onRestart }) => {
+  const chapters = Object.values(QUESTS);
+  
+  return (
+    <div className="ctr" style={{background:'linear-gradient(135deg,#0f172a,#1e293b)',minHeight:'calc(100vh - 60px)'}}>
+      <div className="box" style={{maxWidth:500}}>
+        <div style={{textAlign:'center',marginBottom:20}}>
+          <h1 className="tg" style={{fontSize:28,marginBottom:8}}>📚 Pythonowe Kroniki</h1>
+          <p className="tm" style={{fontSize:14}}>Wybierz Rozdział - System Fazowy</p>
+        </div>
+        
+        <div className="grid" style={{gap:12}}>
+          {chapters.map(ch => {
+            const unlocked = player.lv >= ch.reqLv;
+            const completed = player.dn.filter(id => id.startsWith(ch.id)).length === ch.quests.length;
+            
+            return (
+              <div 
+                key={ch.id}
+                className={`qi ${completed ? 'dn' : ''}`}
+                onClick={() => unlocked && onSelectChapter(ch.id)}
+                style={{opacity: unlocked ? 1 : 0.5, cursor: unlocked ? 'pointer' : 'not-allowed'}}
+              >
+                <div>
+                  <div style={{fontSize:24,marginBottom:4}}>{ch.icon}</div>
+                  <div className="tg" style={{fontSize:15,fontWeight:'bold'}}>{ch.name}</div>
+                  <div className="tm" style={{fontSize:11}}>{ch.desc}</div>
+                  {!unlocked && <div className="tr" style={{fontSize:10,marginTop:4}}>🔒 Wymaga Lv{ch.reqLv}</div>}
+                </div>
+                <div style={{textAlign:'right'}}>
+                  {completed && <div className="ts" style={{fontSize:11}}>✓ Ukończono</div>}
+                  <div className="tm" style={{fontSize:10}}>{ch.quests.length} questów</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        
+        <div style={{marginTop:20,textAlign:'center'}}>
+          <button className="btn bg" onClick={onRestart} style={{fontSize:12}}>🔄 Zresetuj grę</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// QUEST LIST
+const QuestList = ({ chapter, player, onSelectQuest, onBack }) => {
+  const chapterData = QUESTS[chapter];
+  
+  return (
+    <div className="ctr" style={{background:'linear-gradient(135deg,#0f172a,#1e293b)',minHeight:'calc(100vh - 60px)'}}>
+      <div className="box" style={{maxWidth:500}}>
+        <button className="btn bg" onClick={onBack} style={{fontSize:12,marginBottom:16}}>← Powrót</button>
+        
+        <div style={{textAlign:'center',marginBottom:20}}>
+          <div style={{fontSize:48}}>{chapterData.icon}</div>
+          <h2 className="tg" style={{fontSize:24}}>{chapterData.name}</h2>
+          <p className="tm" style={{fontSize:13}}>{chapterData.desc}</p>
+        </div>
+        
+        <div className="ql">
+          {chapterData.quests.map((q, idx) => {
+            const completed = player.dn.includes(q.id);
+            const isCurrent = idx === player.qi && player.ch === chapter;
+            
+            return (
+              <div 
+                key={q.id}
+                className={`qi ${completed ? 'dn' : ''} ${isCurrent ? 'cu' : ''}`}
+                onClick={() => onSelectQuest(idx)}
+              >
+                <div>
+                  <div style={{fontSize:20,marginBottom:4}}>{q.em}</div>
+                  <div className="tg" style={{fontSize:14,fontWeight:'bold'}}>{q.en}</div>
+                  <div className="tm" style={{fontSize:11}}>{q.phases.length} fazy</div>
+                  {q.bs && <div className="tp" style={{fontSize:10}}>👑 BOSS</div>}
+                </div>
+                <div style={{textAlign:'right'}}>
+                  {completed && <div className="ts" style={{fontSize:11}}>✓</div>}
+                  <div className="tm" style={{fontSize:11}}>❤️ {q.hp}</div>
+                  <div className="tb" style={{fontSize:11}}>⭐ +{q.xp}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// BATTLE
+const Battle = ({ quest, player, onVictory, onGameOver, onBack, onUpdatePlayerHp }) => {
+  const [currentPhase, setCurrentPhase] = useState(0);
+  const [enemyHp, setEnemyHp] = useState(quest.hp);
+  const [code, setCode] = useState('');
+  const [output, setOutput] = useState('');
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [showTheory, setShowTheory] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [phaseAnimation, setPhaseAnimation] = useState(false);
+  
+  const phase = quest.phases[currentPhase];
+  const hpPerPhase = Math.ceil(quest.hp / quest.phases.length);
+
+  const handleRun = async () => {
+    setIsExecuting(true);
+    setOutput('Wykonywanie...');
+    
+    const result = await runPythonCode(code);
+    
+    if (result.success) {
+      const userOutput = result.output.trim();
+      const expectedOutput = phase.ex.trim();
+      
+      if (userOutput === expectedOutput) {
+        setOutput(`✅ Poprawnie! Zadano ${hpPerPhase} obrażeń!`);
+        const newEnemyHp = Math.max(0, enemyHp - hpPerPhase);
+        setEnemyHp(newEnemyHp);
+        
+        if (newEnemyHp === 0) {
+          setTimeout(() => onVictory(), 800);
+        } else if (currentPhase < quest.phases.length - 1) {
+          setTimeout(() => {
+            setPhaseAnimation(true);
+            setTimeout(() => {
+              setCurrentPhase(currentPhase + 1);
+              setCode('');
+              setOutput('');
+              setShowHint(false);
+              setPhaseAnimation(false);
+            }, 800);
+          }, 1000);
+        }
+      } else {
+        setOutput(`❌ Błędny wynik!\nOtrzymano: ${userOutput}\nOczekiwano: ${expectedOutput}`);
+        const newPlayerHp = Math.max(0, player.hp - 20);
+        onUpdatePlayerHp(newPlayerHp);
+        if (newPlayerHp === 0) setTimeout(() => onGameOver(), 500);
+      }
+    } else {
+      setOutput(result.output);
+      const newPlayerHp = Math.max(0, player.hp - 15);
+      onUpdatePlayerHp(newPlayerHp);
+      if (newPlayerHp === 0) setTimeout(() => onGameOver(), 500);
+    }
+    
+    setIsExecuting(false);
+  };
+
+  return (
+    <div className="ctr" style={{background:'linear-gradient(135deg,#450a0a,#0f172a)',minHeight:'calc(100vh - 60px)'}}>
+      <div className="box" style={{maxWidth:700}}>
+        <div style={{display:'flex',gap:8,marginBottom:12}}>
+          <button className="btn bg" onClick={onBack} style={{fontSize:12,padding:'6px 12px'}}>← Powrót</button>
+          <button className="btn tp" onClick={()=>setShowTheory(!showTheory)} style={{fontSize:12,padding:'6px 12px'}}>
+            📖 Teoria
+          </button>
+        </div>
+        
+        {showTheory && phase.th && (
+          <div className="box" style={{marginBottom:16,background:'rgba(124,58,237,.15)',borderColor:'#a855f7',border:'2px solid'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+              <div className="tp" style={{fontSize:15,fontWeight:'bold'}}>📖 {phase.tp}</div>
+              <button onClick={()=>setShowTheory(false)} style={{background:'transparent',border:'none',color:'#94a3b8',cursor:'pointer',fontSize:18}}>✕</button>
+            </div>
+            <p className="tm" style={{fontSize:13,lineHeight:1.6}}>{phase.th}</p>
+          </div>
+        )}
+        
+        <div className="grid grid2" style={{marginBottom:16}}>
+          <div className={`box ${phaseAnimation ? 'phaseAnim' : ''}`} style={{textAlign:'center',background:'rgba(15,23,42,.6)'}}>
+            <div style={{fontSize:48,marginBottom:6}}>{quest.em}</div>
+            <div className="tr" style={{fontSize:16,fontWeight:'bold',marginBottom:4}}>
+              {quest.en}
+              <span className={`phaseIndicator phase${phase.phase}`}>
+                Faza {phase.phase}/{quest.phases.length}
+              </span>
+            </div>
+            <div className="tm" style={{fontSize:11,marginBottom:8}}>{phase.tp}</div>
+            <div className="pbar">
+              <div className="pfill" style={{width:`${(enemyHp/quest.hp)*100}%`,background:'linear-gradient(90deg,#dc2626,#b91c1c)'}}></div>
+            </div>
+            <div className="tr" style={{fontSize:12,marginTop:4}}>❤️ {enemyHp}/{quest.hp}</div>
+          </div>
+          
+          <div className="box" style={{background:'rgba(15,23,42,.6)'}}>
+            <div className="tp" style={{fontSize:13,fontWeight:'bold',marginBottom:6}}>
+              📋 Zadanie (Faza {phase.phase}):
+            </div>
+            <p className="tm" style={{fontSize:12,marginBottom:8}}>{phase.tk}</p>
+            <div className="ts" style={{fontSize:11,marginBottom:4}}>✓ Oczekiwany wynik:</div>
+            <div className="con" style={{minHeight:40,fontSize:11}}>{phase.ex}</div>
+          </div>
+        </div>
+
+        <div className="grid">
+          <div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+              <label className="tb" style={{fontSize:13,fontWeight:'bold'}}>💻 Twój kod Python:</label>
+              <button className="btn" onClick={()=>setShowHint(!showHint)} style={{fontSize:11,padding:'4px 10px',background:'#334155'}}>
+                {showHint ? '🙈 Ukryj' : '💡 Podpowiedź'}
+              </button>
+            </div>
+            <textarea 
+              className="code" 
+              value={code} 
+              onChange={(e)=>setCode(e.target.value)}
+              placeholder="# Wpisz swój kod Python..."
+              spellCheck="false"
+            />
+            {showHint && (
+              <div className="box" style={{marginTop:8,background:'rgba(139,92,246,.1)',borderColor:'#8b5cf6'}}>
+                <div className="tp" style={{fontSize:11,fontWeight:'bold',marginBottom:4}}>💡 Podpowiedź:</div>
+                <div className="tm" style={{fontSize:11,marginBottom:6}}>{phase.ls}</div>
+                <pre className="code" style={{fontSize:11,minHeight:'auto',padding:8}}>{phase.ht}</pre>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="ts" style={{fontSize:13,fontWeight:'bold',display:'block',marginBottom:6}}>📤 Wynik:</label>
+            <div className="con">{output || '(uruchom kod)'}</div>
+          </div>
+        </div>
+
+        <div style={{display:'flex',gap:10,marginTop:16}}>
+          <button className="btn bp" onClick={handleRun} disabled={isExecuting} style={{flex:1}}>
+            {isExecuting ? '⏳ Wykonywanie...' : '▶️ Wykonaj kod'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// VICTORY
+const Victory = ({ quest, onClaim }) => (
+  <div className="ctr" style={{background:'linear-gradient(135deg,#064e3b,#0f172a,#064e3b)',minHeight:'calc(100vh - 60px)'}}>
+    <div className="box" style={{maxWidth:380,textAlign:'center',borderColor:'#22c55e'}}>
+      <div className="fl" style={{fontSize:56,marginBottom:12}}>{quest.em}⚔️</div>
+      <h1 className="ts" style={{fontSize:24,marginBottom:6}}>Zwycięstwo!</h1>
+      <p className="tm" style={{marginBottom:16}}>Pokonałeś {quest.en} przez {quest.phases.length} fazy!</p>
+      <div className="box" style={{background:'rgba(0,0,0,.3)',marginBottom:16}}>
+        <div className="tg" style={{fontSize:15,marginBottom:6}}>🎁 Nagrody:</div>
+        <div className="grid" style={{gap:8}}>
+          <div className="ts">⭐ +{quest.xp} XP</div>
+          <div className="tr">❤️ +30 HP</div>
+          {quest.bs && <div className="tp">🧪 +1 Mikstura</div>}
+        </div>
+      </div>
+      <button className="btn bs" onClick={onClaim} style={{width:'100%'}}>✅ Odbierz</button>
+    </div>
+  </div>
+);
+
+// GAME OVER
+const GameOver = ({ onRetry, onRestart }) => (
+  <div className="ctr" style={{background:'linear-gradient(135deg,#450a0a,#0f172a,#450a0a)',minHeight:'calc(100vh - 60px)'}}>
+    <div className="box" style={{maxWidth:380,textAlign:'center',borderColor:'#ef4444'}}>
+      <div style={{fontSize:56,marginBottom:12}}>💀</div>
+      <h1 className="tr" style={{fontSize:24,marginBottom:6}}>Game Over</h1>
+      <p className="tm" style={{marginBottom:16}}>Kod zawiódł...</p>
+      <div style={{display:'flex',gap:10,justifyContent:'center'}}>
+        <button className="btn bg" onClick={onRetry}>🔄 Ponów</button>
+        <button className="btn bp" onClick={onRestart}>🏠 Od nowa</button>
+      </div>
+    </div>
+  </div>
+);
+
+// MAIN APP
+const App = () => {
+  const [screen, setScreen] = useState('loading');
+  const [player, setPlayer] = useState(null);
+  const [currentChapter, setCurrentChapter] = useState('novice');
+  const [currentQuestIndex, setCurrentQuestIndex] = useState(0);
+
+  useEffect(() => {
+    initPyodide().then(() => {
+      const savedData = localStorage.getItem('pk_full_save');
+      if (savedData) {
+        const data = JSON.parse(savedData);
+        setPlayer(data);
+        setCurrentChapter(data.ch);
+        setCurrentQuestIndex(data.qi);
+      } else {
+        setPlayer({hp:100,mhp:100,lv:1,xp:0,pt:1,rk:'📜 Nowicjusz',ch:'novice',qi:0,dn:[]});
+      }
+      setScreen('chapters');
+    });
+  }, []);
+
+  useEffect(() => {
+    if (player) localStorage.setItem('pk_full_save', JSON.stringify(player));
+  }, [player]);
+
+  if (screen === 'loading') return <LoadingScreen />;
+  if (!player) return null;
+
+  const restart = () => {
+    localStorage.removeItem('pk_full_save');
+    setPlayer({hp:100,mhp:100,lv:1,xp:0,pt:1,rk:'📜 Nowicjusz',ch:'novice',qi:0,dn:[]});
+    setCurrentChapter('novice');
+    setCurrentQuestIndex(0);
+    setScreen('chapters');
+  };
+
+  const usePot = () => {
+    if (player.pt > 0) {
+      setPlayer(prev => ({...prev, hp:Math.min(prev.mhp,prev.hp+50), pt:prev.pt-1}));
+    }
+  };
+
+  const selectChapter = (chapterId) => {
+    setCurrentChapter(chapterId);
+    setPlayer(prev => ({...prev, ch:chapterId, qi:0}));
+    setCurrentQuestIndex(0);
+    setScreen('chview');
+  };
+
+  const selectQuest = (questIndex) => {
+    setCurrentQuestIndex(questIndex);
+    setPlayer(prev => ({...prev, qi:questIndex}));
+    setScreen('battle');
+  };
+
+  const handleVictory = () => {
+    setScreen('victory');
+  };
+
+  const claimReward = () => {
+    const chapterData = QUESTS[currentChapter];
+    const quest = chapterData.quests[currentQuestIndex];
+    
+    const newXp = player.xp + quest.xp;
+    const newLv = Math.floor(1 + newXp / 100);
+    const newHp = Math.min(player.mhp, player.hp + 30);
+    const newPotions = quest.bs ? player.pt + 1 : player.pt;
+    const newDone = [...player.dn];
+    if (!newDone.includes(quest.id)) newDone.push(quest.id);
+
+    let newRank = player.rk;
+    if (newLv >= 15 && !player.rk.includes('Arcymag')) newRank = '👑 Arcymag';
+    else if (newLv >= 8 && !player.rk.includes('Mag') && !player.rk.includes('Arcymag')) newRank = '🔮 Mag';
+
+    setPlayer(prev => ({...prev, xp:newXp, lv:newLv, hp:newHp, pt:newPotions, dn:newDone, rk:newRank}));
+
+    if (currentQuestIndex === chapterData.quests.length - 1) {
+      setScreen('chapters');
+    } else {
+      const nextQuestIndex = currentQuestIndex + 1;
+      setCurrentQuestIndex(nextQuestIndex);
+      setPlayer(prev => ({...prev, qi:nextQuestIndex}));
+      setScreen('chview');
+    }
+  };
+
+  const handleGameOver = () => {
+    setScreen('gameover');
+  };
+
+  const updatePlayerHp = (newHp) => {
+    setPlayer(prev => ({...prev, hp:newHp}));
+  };
+
+  const retryBattle = () => {
+    setPlayer(prev => ({...prev, hp:prev.mhp}));
+    setScreen('battle');
+  };
+
+  const currentQuest = QUESTS[currentChapter]?.quests[currentQuestIndex];
+
+  return (
+    <div>
+      <Header player={player} onUsePot={usePot} />
+      {screen === 'chapters' && <ChapterSelect player={player} onSelectChapter={selectChapter} onRestart={restart} />}
+      {screen === 'chview' && <QuestList chapter={currentChapter} player={player} onSelectQuest={selectQuest} onBack={()=>setScreen('chapters')} />}
+      {screen === 'battle' && currentQuest && <Battle quest={currentQuest} player={player} onVictory={handleVictory} onGameOver={handleGameOver} onBack={()=>setScreen('chview')} onUpdatePlayerHp={updatePlayerHp} />}
+      {screen === 'victory' && currentQuest && <Victory quest={currentQuest} onClaim={claimReward} />}
+      {screen === 'gameover' && <GameOver onRetry={retryBattle} onRestart={restart} />}
+    </div>
+  );
+};
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>

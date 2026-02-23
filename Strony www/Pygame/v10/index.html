@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<meta name="description" content="Learn Python programming through an epic RPG adventure. 30 quests, 90 challenges, real Python code.">
+<title>Pygame Chronicles - Choose Language</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Cinzel', 'Georgia', serif;
+  background: #0a0a0a;
+  color: #d4c5aa;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(139,69,19,0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(75,0,130,0.15) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(139,69,19,0.05) 0%, transparent 70%);
+  overflow-x: hidden;
+  overflow-y: auto;
+  position: relative;
+  padding: 20px 0;
+}
+
+/* Animated background particles */
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.1;
+  animation: float-particle 20s infinite ease-in-out;
+}
+
+.particle:nth-child(1) { width: 3px; height: 3px; background: #d4af37; left: 10%; top: 20%; animation-delay: 0s; }
+.particle:nth-child(2) { width: 4px; height: 4px; background: #8b5cf6; left: 80%; top: 30%; animation-delay: 2s; }
+.particle:nth-child(3) { width: 2px; height: 2px; background: #22c55e; left: 60%; top: 70%; animation-delay: 4s; }
+.particle:nth-child(4) { width: 5px; height: 5px; background: #ef4444; left: 30%; top: 80%; animation-delay: 6s; }
+.particle:nth-child(5) { width: 3px; height: 3px; background: #3b82f6; left: 90%; top: 50%; animation-delay: 8s; }
+
+@keyframes float-particle {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  25% { transform: translateY(-30px) translateX(20px); }
+  50% { transform: translateY(-50px) translateX(-10px); }
+  75% { transform: translateY(-20px) translateX(30px); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes glow {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.3),
+                0 0 40px rgba(212, 175, 55, 0.1);
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.5),
+                0 0 60px rgba(212, 175, 55, 0.2);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.container {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  max-width: 1200px;
+  width: 100%;
+  padding: 20px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-size: 72px;
+  margin-bottom: 20px;
+  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.5));
+}
+
+h1 {
+  font-size: clamp(32px, 6vw, 48px);
+  color: #d4af37;
+  margin-bottom: 10px;
+  text-shadow: 
+    0 0 10px rgba(212, 175, 55, 0.5),
+    0 0 20px rgba(212, 175, 55, 0.3),
+    0 0 30px rgba(212, 175, 55, 0.1);
+  background: linear-gradient(
+    90deg,
+    #d4af37 0%,
+    #f4e5b8 50%,
+    #d4af37 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+}
+
+.subtitle {
+  font-size: clamp(14px, 2.5vw, 18px);
+  color: #a0a0a0;
+  margin-bottom: 30px;
+  letter-spacing: 1px;
+}
+
+.language-select {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  justify-content: center;
+  margin-bottom: 30px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.language-card {
+  position: relative;
+  background: linear-gradient(145deg, rgba(40,30,20,0.95), rgba(20,15,10,0.95));
+  border: 2px solid #5a4a3a;
+  border-radius: 16px;
+  padding: 30px 40px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.language-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(212, 175, 55, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.language-card:hover::before {
+  left: 100%;
+}
+
+.language-card:hover {
+  transform: translateY(-10px) scale(1.05);
+  border-color: #d4af37;
+  box-shadow: 
+    0 20px 60px rgba(0,0,0,0.8),
+    0 0 30px rgba(212, 175, 55, 0.3),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.language-card:active {
+  transform: translateY(-5px) scale(1.02);
+}
+
+.flag {
+  font-size: 64px;
+  margin-bottom: 20px;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.language-card:hover .flag {
+  transform: scale(1.2) rotate(5deg);
+}
+
+.language-name {
+  font-size: 28px;
+  font-weight: bold;
+  color: #d4af37;
+  margin-bottom: 8px;
+}
+
+.language-native {
+  font-size: 16px;
+  color: #c084fc;
+  margin-bottom: 15px;
+}
+
+.language-desc {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+.features {
+  background: linear-gradient(145deg, rgba(40,30,20,0.6), rgba(20,15,10,0.6));
+  border: 1px solid #3a2a1a;
+  border-radius: 12px;
+  padding: 25px 20px;
+  margin-top: 30px;
+}
+
+.features h2 {
+  font-size: clamp(20px, 4vw, 24px);
+  color: #d4af37;
+  margin-bottom: 20px;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: clamp(12px, 2vw, 14px);
+  color: #c0c0c0;
+  padding: 5px;
+}
+
+.feature-icon {
+  font-size: clamp(20px, 3vw, 24px);
+  filter: drop-shadow(0 0 5px currentColor);
+  flex-shrink: 0;
+}
+
+.footer {
+  margin-top: 30px;
+  font-size: clamp(10px, 2vw, 12px);
+  color: #64748b;
+  letter-spacing: 1px;
+  padding: 0 10px;
+}
+
+/* Support Section */
+.support-section {
+  background: linear-gradient(145deg, rgba(60,40,30,0.7), rgba(30,20,15,0.7));
+  border: 2px solid #6a4a2a;
+  border-radius: 16px;
+  padding: 30px 20px;
+  margin-top: 30px;
+  box-shadow: 
+    0 10px 40px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.support-section h2 {
+  font-size: clamp(22px, 4vw, 28px);
+  color: #d4af37;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.support-text {
+  font-size: clamp(14px, 2.5vw, 16px);
+  color: #c0c0c0;
+  text-align: center;
+  margin-bottom: 5px;
+}
+
+.support-subtext {
+  font-size: clamp(12px, 2vw, 14px);
+  color: #94a3b8;
+  text-align: center;
+  margin-bottom: 25px;
+  font-style: italic;
+}
+
+.donate-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
+.donate-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(145deg, rgba(40,30,20,0.9), rgba(20,15,10,0.9));
+  border: 2px solid #5a4a3a;
+  border-radius: 12px;
+  padding: 15px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.donate-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(212, 175, 55, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.donate-btn:hover::before {
+  left: 100%;
+}
+
+.donate-btn:hover {
+  transform: translateY(-5px);
+  border-color: #d4af37;
+  box-shadow: 
+    0 10px 30px rgba(0,0,0,0.8),
+    0 0 20px rgba(212, 175, 55, 0.3);
+}
+
+.donate-icon {
+  font-size: clamp(28px, 5vw, 36px);
+  min-width: 36px;
+  text-align: center;
+  filter: drop-shadow(0 0 8px currentColor);
+  flex-shrink: 0;
+}
+
+.donate-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.donate-platform {
+  font-size: clamp(14px, 2.5vw, 16px);
+  font-weight: bold;
+  color: #d4af37;
+}
+
+.donate-desc {
+  font-size: clamp(11px, 2vw, 12px);
+  color: #94a3b8;
+}
+
+/* Custom Amount Section */
+.custom-amount {
+  background: rgba(20,15,10,0.6);
+  border: 1px solid #3a2a1a;
+  border-radius: 10px;
+  padding: 25px;
+  margin-top: 20px;
+}
+
+.custom-text {
+  font-size: 14px;
+  color: #c0c0c0;
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.custom-input-group {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.custom-input {
+  width: 120px;
+  padding: 12px 16px;
+  background: rgba(40,30,20,0.9);
+  border: 2px solid #5a4a3a;
+  border-radius: 8px;
+  color: #d4c5aa;
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.custom-input:focus {
+  outline: none;
+  border-color: #d4af37;
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+}
+
+.custom-select {
+  padding: 12px 16px;
+  background: rgba(40,30,20,0.9);
+  border: 2px solid #5a4a3a;
+  border-radius: 8px;
+  color: #d4c5aa;
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.custom-select:focus {
+  outline: none;
+  border-color: #d4af37;
+}
+
+.custom-btn {
+  padding: 12px 30px;
+  background: linear-gradient(145deg, #8b4513, #5a2d0d);
+  border: 2px solid #6a3d1d;
+  border-radius: 8px;
+  color: #ffd7a3;
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.custom-btn:hover {
+  background: linear-gradient(145deg, #a0551e, #6a3d1d);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.8);
+}
+
+.custom-btn:active {
+  transform: translateY(0);
+}
+
+.support-thanks {
+  font-size: 13px;
+  color: #90ee90;
+  text-align: center;
+  margin-top: 25px;
+  margin-bottom: 5px;
+}
+
+/* Platform-specific button colors (optional) */
+#kofi-btn:hover {
+  border-color: #FF5E5B;
+}
+
+
+#paypal-btn:hover {
+  border-color: #00457C;
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 10px 0;
+  }
+
+  .container {
+    padding: 15px;
+  }
+
+  .logo {
+    font-size: 48px;
+    margin-bottom: 10px;
+  }
+  
+  h1 {
+    font-size: 32px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    margin-bottom: 20px;
+  }
+  
+  .language-card {
+    padding: 25px 30px;
+  }
+  
+  .language-select {
+    gap: 15px;
+    grid-template-columns: 1fr;
+  }
+
+  .flag {
+    font-size: 48px;
+  }
+
+  .language-name {
+    font-size: 24px;
+  }
+
+  .language-native {
+    font-size: 14px;
+  }
+
+  .language-desc {
+    font-size: 12px;
+  }
+
+  .features {
+    padding: 20px 15px;
+    margin-top: 20px;
+  }
+
+  .feature-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+
+  .support-section {
+    padding: 20px 15px;
+    margin-top: 25px;
+  }
+
+  .support-section h2 {
+    font-size: 22px;
+  }
+
+  .support-text {
+    font-size: 14px;
+  }
+
+  .support-subtext {
+    font-size: 12px;
+    margin-bottom: 20px;
+  }
+
+  .donate-buttons {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .donate-btn {
+    padding: 15px;
+  }
+
+  .custom-amount {
+    padding: 20px 15px;
+  }
+
+  .custom-input-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .custom-input,
+  .custom-select,
+  .custom-btn {
+    width: 100%;
+  }
+
+  .custom-input {
+    font-size: 14px;
+    padding: 10px 14px;
+  }
+
+  .custom-select {
+    font-size: 13px;
+    padding: 10px 14px;
+  }
+
+  .custom-btn {
+    font-size: 13px;
+    padding: 10px 25px;
+  }
+
+  .support-thanks {
+    font-size: 12px;
+    margin-top: 20px;
+  }
+
+  .footer {
+    margin-top: 25px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 10px;
+  }
+
+  .logo {
+    font-size: 40px;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+  }
+
+  .language-card {
+    padding: 20px 25px;
+  }
+
+  .flag {
+    font-size: 42px;
+  }
+
+  .language-name {
+    font-size: 20px;
+  }
+
+  .donate-btn {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .donate-icon {
+    font-size: 28px;
+    min-width: 32px;
+  }
+
+  .donate-platform {
+    font-size: 14px;
+  }
+
+  .donate-desc {
+    font-size: 11px;
+  }
+}
+
+/* Loading animation for navigation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loading {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 48px;
+  animation: spin 1s linear infinite;
+  z-index: 1000;
+}
+
+.loading.active {
+  display: block;
+}
+</style>
+</head>
+<body>
+<!-- Animated particles -->
+<div class="particle"></div>
+<div class="particle"></div>
+<div class="particle"></div>
+<div class="particle"></div>
+<div class="particle"></div>
+
+<div class="loading" id="loading">⚙️</div>
+
+<div class="container">
+  <div class="logo">🐍📚</div>
+  <h1>Pygame Chronicles</h1>
+  <p class="subtitle">Choose Your Language / Wybierz Język</p>
+  
+  <div class="language-select">
+    <div class="language-card" onclick="selectLanguage('en')">
+      <span class="flag">EN</span>
+      <div class="language-name">English</div>
+      <div class="language-native">English Version</div>
+      <div class="language-desc">Learn Python through an epic RPG adventure with 30 quests across 3 chapters</div>
+    </div>
+    
+    <div class="language-card" onclick="selectLanguage('pl')">
+      <span class="flag">PL</span>
+      <div class="language-name">Polski</div>
+      <div class="language-native">Polska Wersja</div>
+      <div class="language-desc">Naucz się Pythona przez epicką przygodę RPG z 30 questami w 3 rozdziałach</div>
+    </div>
+  </div>
+  
+  <div class="features">
+    <h2>✨ Game Features</h2>
+    <div class="feature-grid">
+      <div class="feature-item">
+        <span class="feature-icon">⚔️</span>
+        <span>30 Coding Quests</span>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">🎯</span>
+        <span>90 Code Challenges</span>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">🐍</span>
+        <span>Real Python Code</span>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">💾</span>
+        <span>Progress Saved</span>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">📖</span>
+        <span>Theory Included</span>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">🎮</span>
+        <span>RPG Mechanics</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="support-section">
+    <h2>☕ Support the Project</h2>
+    <p class="support-text">If you enjoy this game and want to support its development, consider buying me a coffee!</p>
+    <p class="support-subtext">Jeśli podoba Ci się ta gra i chcesz wesprzeć jej rozwój, postaw mi kawę!</p>
+    
+    <div class="donate-buttons">
+      <a href="#" class="donate-btn" id="kofi-btn" onclick="openDonation('kofi'); return false;">
+        <span class="donate-icon">☕</span>
+        <span class="donate-text">
+          <span class="donate-platform">Ko-fi</span>
+          <span class="donate-desc">One-time support</span>
+        </span>
+      </a>
+      
+      <a href="#" class="donate-btn" id="paypal-btn" onclick="openDonation('paypal'); return false;">
+        <span class="donate-icon">💳</span>
+        <span class="donate-text">
+          <span class="donate-platform">PayPal</span>
+          <span class="donate-desc">Direct payment</span>
+        </span>
+      </a>
+    </div>
+    
+    <div class="custom-amount">
+      <p class="custom-text">Or enter a custom amount:</p>
+      <div class="custom-input-group">
+        <input type="number" id="custom-amount" class="custom-input" placeholder="10" min="1" step="1">
+        <select id="custom-platform" class="custom-select">
+          <option value="kofi">Ko-fi</option>
+          <option value="paypal">PayPal</option>
+        </select>
+        <button onclick="openCustomDonation()" class="custom-btn">Donate</button>
+      </div>
+    </div>
+    
+    <p class="support-thanks">💝 Every contribution helps improve the game and create more content!</p>
+    <p class="support-thanks">💝 Każde wsparcie pomaga rozwijać grę i tworzyć więcej treści!</p>
+  </div>
+  
+  <div class="footer">
+    Made with ❤️ for Python learners | Pyodide v0.24.1 | 2025
+  </div>
+</div>
+
+<script>
+// CONFIGURATION - Replace these URLs with your actual donation platform links
+const DONATION_LINKS = {
+  kofi: 'https://ko-fi.com/patrykb9196',           // Replace YOUR_USERNAME
+  paypal: 'https://paypal.me/PatrykB9196'          // Replace YOUR_USERNAME
+};
+
+function openDonation(platform) {
+  const url = DONATION_LINKS[platform];
+  
+  // Check if URL is configured
+  if (url.includes('YOUR_USERNAME')) {
+    alert('⚠️ Donation link not configured yet!\n\nPlease update the DONATION_LINKS in the code with your actual platform URLs.\n\n⚠️ Link do wsparcia nie jest jeszcze skonfigurowany!\n\nZaktualizuj DONATION_LINKS w kodzie swoimi prawdziwymi adresami URL.');
+    return;
+  }
+  
+  // Open in new tab
+  window.open(url, '_blank');
+  
+  // Optional: Track donation click
+  console.log(`Donation clicked: ${platform}`);
+}
+
+function openCustomDonation() {
+  const amount = document.getElementById('custom-amount').value;
+  const platform = document.getElementById('custom-platform').value;
+  
+  if (!amount || amount < 1) {
+    alert('Please enter a valid amount / Proszę podać poprawną kwotę');
+    return;
+  }
+  
+  // Open donation with custom amount (platform-specific URL construction)
+  const baseUrl = DONATION_LINKS[platform];
+  
+  if (baseUrl.includes('YOUR_USERNAME')) {
+    alert('⚠️ Donation link not configured yet!');
+    return;
+  }
+  
+  // Construct URL with amount (different for each platform)
+  let url = baseUrl;
+  if (platform === 'kofi') {
+    url = `${baseUrl}?amount=${amount}`;
+  } else if (platform === 'paypal') {
+    url = `${baseUrl}/${amount}`;
+  }
+  
+  window.open(url, '_blank');
+  console.log(`Custom donation: ${platform}, amount: ${amount}`);
+}
+
+function selectLanguage(lang) {
+  // Show loading animation
+  document.getElementById('loading').classList.add('active');
+  
+  // Save language preference
+  localStorage.setItem('python_chronicles_lang', lang);
+  
+  // Redirect based on language
+  setTimeout(() => {
+    if (lang === 'en') {
+      window.location.href = 'python-chronicles-english.html';
+    } else if (lang === 'pl') {
+      window.location.href = 'pythonowe-kroniki-pelna-wersja.html';
+    }
+  }, 500);
+}
+
+// Auto-select based on browser language (optional)
+document.addEventListener('DOMContentLoaded', () => {
+  const savedLang = localStorage.getItem('python_chronicles_lang');
+  if (savedLang) {
+    // If user has played before, show a subtle indicator
+    console.log(`Last played in: ${savedLang === 'en' ? 'English' : 'Polski'}`);
+  }
+});
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.key === '1' || e.key === 'e') {
+    selectLanguage('en');
+  } else if (e.key === '2' || e.key === 'p') {
+    selectLanguage('pl');
+  }
+});
+</script>
+</body>
+</html>
